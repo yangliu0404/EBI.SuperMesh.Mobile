@@ -1,0 +1,51 @@
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+*.xcworkspace/
+*.xcuserdata/
+
+# Android
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/android/*.jks
+**/android/*.keystore
+
+# iOS
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+
+# Coverage
+coverage/
+**/coverage/
+
+# Generated
+**/*.g.dart
+**/*.freezed.dart
+
+# Melos
+pubspec_overrides.yaml
+
+# Environment
+.env
+.env.*
+
+# Releases (handled separately)
+*.apk
+*.aab
+*.ipa

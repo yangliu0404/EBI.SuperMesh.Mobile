@@ -1,0 +1,31 @@
+name: mesh_work
+description: "MeshWork - e-bi Employee App for mobile office & field operations."
+publish_to: 'none'
+resolution: workspace
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # e-bi shared packages
+  ebi_core:
+    path: ../../packages/ebi_core
+  ebi_ui_kit:
+    path: ../../packages/ebi_ui_kit
+  ebi_models:
+    path: ../../packages/ebi_models
+  ebi_chat:
+    path: ../../packages/ebi_chat
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

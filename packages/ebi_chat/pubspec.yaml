@@ -1,0 +1,20 @@
+name: ebi_chat
+description: IM chat module for e-bi apps — order-based group chat, shared between MeshWork and MeshPortal.
+version: 0.1.0
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.10.0
+  flutter: ">=3.38.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ebi_models:
+    path: ../ebi_models
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

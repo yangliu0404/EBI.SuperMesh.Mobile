@@ -1,0 +1,69 @@
+name: supermesh_mobile
+repository: https://github.com/e-bi/supermesh-mobile
+
+packages:
+  - apps/*
+  - packages/*
+
+sdkPath: auto
+
+command:
+  version:
+    branch: main
+    message: "chore: release {versioning}"
+
+  bootstrap:
+    usePubspecOverrides: true
+
+scripts:
+  analyze:
+    description: Run dart analyze in all packages
+    exec: dart analyze --fatal-infos
+    packageFilters:
+      flutter: true
+
+  format:
+    description: Format all Dart files
+    exec: dart format .
+
+  format:check:
+    description: Check format without modifying
+    exec: dart format --set-exit-if-changed .
+
+  test:
+    description: Run tests in all packages
+    exec: flutter test
+    packageFilters:
+      dirExists: test
+
+  test:coverage:
+    description: Run tests with coverage
+    exec: flutter test --coverage
+    packageFilters:
+      dirExists: test
+
+  clean:
+    description: Clean all packages
+    exec: flutter clean
+
+  build:android:meshwork:
+    description: Build MeshWork Android APK
+    run: cd apps/MeshWork && flutter build apk --release
+
+  build:android:meshportal:
+    description: Build MeshPortal Android APK
+    run: cd apps/MeshPortal && flutter build apk --release
+
+  build:ios:meshwork:
+    description: Build MeshWork iOS
+    run: cd apps/MeshWork && flutter build ios --release --no-codesign
+
+  build:ios:meshportal:
+    description: Build MeshPortal iOS
+    run: cd apps/MeshPortal && flutter build ios --release --no-codesign
+
+  gen:
+    description: Run build_runner in all packages
+    exec: dart run build_runner build --delete-conflicting-outputs
+    packageFilters:
+      dependsOn: build_runner

@@ -1,0 +1,17 @@
+name: supermesh_mobile_workspace
+description: e-bi SuperMesh Mobile Monorepo workspace root.
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  melos: ^7.4.0
+
+workspace:
+  - apps/MeshWork
+  - apps/MeshPortal
+  - packages/ebi_core
+  - packages/ebi_ui_kit
+  - packages/ebi_models
+  - packages/ebi_chat
