@@ -26,7 +26,7 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('用户设置'),
+        title: const Text('用户设置', style: TextStyle(fontSize: 17)),
         backgroundColor: EbiColors.primaryBlue,
         foregroundColor: EbiColors.white,
         elevation: 0,

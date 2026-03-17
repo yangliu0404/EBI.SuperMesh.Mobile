@@ -175,6 +175,7 @@ class MockChatRepository implements ChatRepository {
     String receiveUserId, {
     int skipCount = 0,
     int maxResultCount = 50,
+    int? messageType,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     _messageCache[receiveUserId] ??= _mockMessages(receiveUserId);
@@ -186,11 +187,29 @@ class MockChatRepository implements ChatRepository {
     String groupId, {
     int skipCount = 0,
     int maxResultCount = 50,
+    int? messageType,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
     final convId = 'group:$groupId';
     _messageCache[convId] ??= _mockMessages(convId);
     return List.from(_messageCache[convId]!);
+  }
+
+  @override
+  Future<List<ChatMessage>> getMediaMessages({
+    String? groupId,
+    String? receiveUserId,
+    int skipCount = 0,
+    int maxResultCount = 50,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 400));
+    final String convId = groupId != null ? 'group:$groupId' : receiveUserId!;
+    _messageCache[convId] ??= _mockMessages(convId);
+    final allMessages = _messageCache[convId]!;
+    final mediaMessages = allMessages.where((m) => 
+        m.type == MessageType.image || m.type == MessageType.video).toList();
+    mediaMessages.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return mediaMessages;
   }
 
   @override

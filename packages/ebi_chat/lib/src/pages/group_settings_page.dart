@@ -6,6 +6,7 @@ import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/services/group_api_service.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:ebi_chat/src/pages/user_selection_page.dart';
+import 'package:ebi_chat/src/pages/message_search_page.dart';
 
 /// Provider for the GroupApiService.
 final groupApiServiceProvider = Provider<GroupApiService>((ref) {
@@ -426,7 +427,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         children: [
           // Search bar
           GestureDetector(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('搜索开发中'))),
+            onTap: () => _searchHistory(0),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
@@ -454,10 +455,10 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
               spacing: 0,
               runSpacing: 20,
               children: [
-                _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: () => _showComingSoon('聊天记录')),
-                _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _showComingSoon('图片及视频')),
-                _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _showComingSoon('文件')),
-                _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _showComingSoon('链接')),
+                _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: () => _searchHistory(0)),
+                _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _searchHistory(1)),
+                _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _searchHistory(2)),
+                _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _searchHistory(3)),
                 
                 // ERP & Enterprise integrations
                 _categoryIcon(Icons.assignment_outlined, '相关项目', width: itemWidth, onTap: () => _showComingSoon('相关项目')),
@@ -601,17 +602,17 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         children: [
           _buildInfoRow(
             '我在本群的昵称',
-            _myNickName ?? '未设置',
+            _myNickName?.isNotEmpty == true ? _myNickName! : '未设置',
             subtitle: '由于管理员开启了内部群仅显示真名，此功能被禁用。',
             canEdit: true,
-            onTap: () => _editNickName(),
+            onTap: () => _editField('nickname', _myNickName ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _buildInfoRow(
             '群备注',
-            '未设置',
+            _groupInfo?.alias?.isNotEmpty == true ? _groupInfo!.alias! : '未设置',
             canEdit: true,
-            onTap: () => _showComingSoon('群备注'),
+            onTap: () => _editField('alias', _groupInfo?.alias ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _buildToggleRow('置顶会话', _isPinned, (v) => setState(() => _isPinned = v)),
@@ -819,100 +820,116 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
     }
   }
 
+  void _searchHistory([int initialIndex = 0]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MessageSearchPage(
+          groupId: widget.groupId,
+          initialTabIndex: initialIndex,
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _showEditSheet(String title, String initialValue, int maxLength, bool multiline) {
+    final controller = TextEditingController(text: initialValue);
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF111111))),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Color(0xFF999999)),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                maxLength: maxLength,
+                maxLines: multiline ? 5 : 1,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: '请输入...',
+                  filled: true,
+                  fillColor: const Color(0xFFF5F5F5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF0052D9),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text('保存', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _editField(String field, String currentValue) async {
     final labels = {
       'name': '群名称',
       'notice': '群公告',
       'description': '群描述',
+      'alias': '群备注',
+      'nickname': '我在本群的昵称',
     };
     final maxLengths = {
       'name': 20,
       'notice': 500,
       'description': 128,
+      'alias': 32,
+      'nickname': 32,
     };
-    final controller = TextEditingController(text: currentValue);
+    final title = '编辑${labels[field]}';
     final multiline = field == 'notice' || field == 'description';
 
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('编辑${labels[field]}'),
-        content: TextField(
-          controller: controller,
-          maxLength: maxLengths[field],
-          maxLines: multiline ? 5 : 1,
-          decoration: InputDecoration(
-            hintText: '请输入${labels[field]}',
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-
+    final result = await _showEditSheet(title, currentValue, maxLengths[field]!, multiline);
     if (result == null || !mounted) return;
 
     try {
       final api = ref.read(groupApiServiceProvider);
-      await api.updateGroup(widget.groupId, {field: result});
+      if (field == 'alias') {
+        await api.setAlias(widget.groupId, result);
+      } else if (field == 'nickname') {
+        await api.setNickName(widget.groupId, result);
+      } else {
+        await api.updateGroup(widget.groupId, {field: result});
+      }
       _loadData();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${labels[field]}已更新')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('更新失败: $e')),
-      );
-    }
-  }
-
-  Future<void> _editNickName() async {
-    final controller = TextEditingController(text: _myNickName ?? '');
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('我的群昵称'),
-        content: TextField(
-          controller: controller,
-          maxLength: 32,
-          decoration: const InputDecoration(
-            hintText: '输入群内显示昵称',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('保存'),
-          ),
-        ],
-      ),
-    );
-
-    if (result == null || !mounted) return;
-
-    try {
-      final api = ref.read(groupApiServiceProvider);
-      await api.setNickName(widget.groupId, result);
-      _loadData();
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('群昵称已更新')),
       );
     } catch (e) {
       if (!mounted) return;

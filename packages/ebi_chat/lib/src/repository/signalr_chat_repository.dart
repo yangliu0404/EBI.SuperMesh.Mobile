@@ -108,6 +108,7 @@ class SignalRChatRepository implements ChatRepository {
     String receiveUserId, {
     int skipCount = 0,
     int maxResultCount = 50,
+    int? messageType,
   }) async {
     try {
       AppLogger.debug('[SignalRChatRepo] getUserMessages receiveUserId=$receiveUserId');
@@ -118,6 +119,7 @@ class SignalRChatRepository implements ChatRepository {
           'skipCount': skipCount,
           'maxResultCount': maxResultCount,
           'sorting': 'CreationTime desc',
+          if (messageType != null) 'messageType': messageType,
         },
       );
 
@@ -152,6 +154,7 @@ class SignalRChatRepository implements ChatRepository {
     String groupId, {
     int skipCount = 0,
     int maxResultCount = 50,
+    int? messageType,
   }) async {
     try {
       final response = await _apiClient.get(
@@ -161,6 +164,7 @@ class SignalRChatRepository implements ChatRepository {
           'skipCount': skipCount,
           'maxResultCount': maxResultCount,
           'sorting': 'CreationTime desc',
+          if (messageType != null) 'messageType': messageType,
         },
       );
 
@@ -185,6 +189,44 @@ class SignalRChatRepository implements ChatRepository {
       return messages;
     } catch (e, st) {
       AppLogger.error('[SignalRChatRepo] getGroupMessages failed', e, st);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<ChatMessage>> getMediaMessages({
+    String? groupId,
+    String? receiveUserId,
+    int skipCount = 0,
+    int maxResultCount = 50,
+  }) async {
+    try {
+      final imgFuture = groupId != null
+          ? getGroupMessages(groupId, skipCount: skipCount, maxResultCount: maxResultCount, messageType: ImMessageType.image.value)
+          : getUserMessages(receiveUserId!, skipCount: skipCount, maxResultCount: maxResultCount, messageType: ImMessageType.image.value);
+          
+      final vidFuture = groupId != null
+          ? getGroupMessages(groupId, skipCount: skipCount, maxResultCount: maxResultCount, messageType: ImMessageType.video.value)
+          : getUserMessages(receiveUserId!, skipCount: skipCount, maxResultCount: maxResultCount, messageType: ImMessageType.video.value);
+
+      final results = await Future.wait([imgFuture, vidFuture]);
+      final List<ChatMessage> combined = [...results[0], ...results[1]];
+      
+      // Sort ascending for UI consistency or descending if fetching paginated history?
+      // Usually gallery wants descending (newest first) or ascending. 
+      // We match the ascending sort of getGroupMessages for UI, or we can just sort by createdAt asc.
+      combined.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      
+      // Remove duplicates just in case
+      final Map<String, ChatMessage> unique = {};
+      for (var m in combined) {
+        unique[m.id] = m;
+      }
+      final sortedUnique = unique.values.toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      
+      return sortedUnique;
+    } catch (e, st) {
+      AppLogger.error('[SignalRChatRepo] getMediaMessages failed', e, st);
       rethrow;
     }
   }

@@ -103,6 +103,14 @@ class GroupApiService {
     });
   }
 
+  /// Set group alias (remark) for the current user.
+  Future<void> setAlias(String groupId, String alias) async {
+    await _api.put('/api/im/user-groups/alias', data: {
+      'groupId': groupId,
+      'alias': alias,
+    });
+  }
+
   /// Transfer group ownership.
   Future<void> transferOwner(String groupId, String newAdminUserId) async {
     await _api.put('/api/im/user-groups/transfer-owner', data: {

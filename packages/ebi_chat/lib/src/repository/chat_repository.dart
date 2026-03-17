@@ -12,11 +12,21 @@ abstract class ChatRepository {
     String receiveUserId, {
     int skipCount = 0,
     int maxResultCount = 50,
+    int? messageType,
   });
 
   /// Fetch group message history.
   Future<List<ChatMessage>> getGroupMessages(
     String groupId, {
+    int skipCount = 0,
+    int maxResultCount = 50,
+    int? messageType,
+  });
+
+  /// Fetch media messages (images and videos combined) for either a user or a group.
+  Future<List<ChatMessage>> getMediaMessages({
+    String? groupId,
+    String? receiveUserId,
     int skipCount = 0,
     int maxResultCount = 50,
   });

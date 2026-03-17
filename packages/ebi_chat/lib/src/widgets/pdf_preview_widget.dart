@@ -180,12 +180,18 @@ class _PdfPreviewWidgetState extends ConsumerState<PdfPreviewWidget> {
       );
     }
 
-    return PdfViewer.file(
-      _localPath!,
-      params: PdfViewerParams(
-        enableTextSelection: true,
-        maxScale: 8.0,
-      ),
+    return Column(
+      children: [
+        Expanded(
+          child: PdfViewer.file(
+            _localPath!,
+            params: const PdfViewerParams(
+              enableTextSelection: true,
+              maxScale: 8.0,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

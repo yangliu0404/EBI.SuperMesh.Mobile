@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/chat_message.dart';
+import 'package:ebi_core/ebi_core.dart';
+import 'package:ebi_chat/src/models/im_models.dart';
+import 'package:ebi_chat/src/pages/media_gallery_page.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 
 /// Displays an image message with OSS-resolved thumbnail and full-screen preview.
@@ -54,29 +59,97 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
   Future<void> _openFullScreen() async {
     final ossPath = widget.message.content;
     if (ossPath.isEmpty) return;
+
+    if (!mounted) return;
+    
+    // Show a loading indicator if fetching takes time
+    unawaited(showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    ));
+
     try {
-      final ossService = ref.read(ossUrlServiceProvider);
-      final fullUrl = await ossService.getFileUrl(ossPath);
-      if (mounted) {
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => _FullScreenImageView(
-              imageUrl: fullUrl,
-              heroTag: widget.message.id,
-            ),
-          ),
+      final repo = ref.read(chatRepositoryProvider);
+      final isGroup = widget.message.roomId.startsWith('group:');
+      final groupId = isGroup ? widget.message.roomId.substring(6) : widget.message.roomId; // if using roomId logic
+      
+      final history = await repo.getMediaMessages(
+        groupId: isGroup ? groupId : null,
+        receiveUserId: !isGroup ? widget.message.roomId : null, // Assuming roomId is the receiveUserId for 1-1
+        maxResultCount: 100,
+      );
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
+
+      // Convert ChatMessage to ImChatMessage for the gallery
+      final List<ImChatMessage> galleryItems = history.map((e) => ImChatMessage(
+        messageId: e.id,
+        groupId: isGroup ? groupId : '',
+        formUserId: e.senderId,
+        formUserName: e.senderName,
+        messageType: e.type == MessageType.image ? ImMessageType.image.value : ImMessageType.video.value,
+        content: e.content,
+        sendTime: e.createdAt.toIso8601String(),
+        extraProperties: {
+          'fileName': e.fileName,
+          'fileSize': e.fileSize,
+          'fileExt': e.fileExt,
+          'mimeType': e.mimeType,
+        },
+      )).toList();
+
+      int initialIndex = galleryItems.indexWhere((m) => m.messageId == widget.message.id);
+      if (initialIndex < 0) {
+        // Fallback if not found in recent 100
+        final fallbackMsg = ImChatMessage(
+          messageId: widget.message.id,
+          groupId: isGroup ? groupId : '',
+          formUserId: widget.message.senderId,
+          formUserName: widget.message.senderName,
+          messageType: ImMessageType.image.value,
+          content: ossPath,
+          sendTime: widget.message.createdAt.toIso8601String(),
         );
+        galleryItems.insert(0, fallbackMsg);
+        initialIndex = 0;
       }
+
+      await Navigator.of(context).push(
+        FadePageRoute(
+          page: MediaGalleryPage(
+            mediaMessages: galleryItems,
+            initialIndex: initialIndex,
+            groupId: isGroup ? groupId : null,
+            userId: !isGroup ? widget.message.roomId : null,
+          ),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e is OssUrlException ? 'Image load failed: ${e.message}' : 'Failed to load image',
-            ),
+      if (mounted) Navigator.of(context).pop(); // dismiss
+      AppLogger.error('[ImageMessageWidget] Failed to load gallery context', e);
+      
+      // Fallback: Just open this single image
+      if (!mounted) return;
+      final fallbackMsg = ImChatMessage(
+        messageId: widget.message.id,
+        groupId: widget.message.roomId,
+        formUserId: widget.message.senderId,
+        formUserName: widget.message.senderName,
+        messageType: ImMessageType.image.value,
+        content: ossPath,
+        sendTime: widget.message.createdAt.toIso8601String(),
+      );
+      await Navigator.of(context).push(
+        FadePageRoute(
+          page: MediaGalleryPage(
+            mediaMessages: [fallbackMsg],
+            initialIndex: 0,
+            groupId: widget.message.roomId, 
           ),
-        );
-      }
+        ),
+      );
     }
   }
 
@@ -200,65 +273,6 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
                 ),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Full-screen image preview with pinch-to-zoom.
-class _FullScreenImageView extends StatelessWidget {
-  final String imageUrl;
-  final String heroTag;
-
-  const _FullScreenImageView({
-    required this.imageUrl,
-    required this.heroTag,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      extendBodyBehindAppBar: true,
-      body: Center(
-        child: InteractiveViewer(
-          minScale: 0.5,
-          maxScale: 4.0,
-          child: Image.network(
-            imageUrl,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.broken_image, size: 64, color: Colors.white54),
-                  SizedBox(height: 12),
-                  Text(
-                    'Image failed to load',
-                    style: TextStyle(color: Colors.white54, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-            loadingBuilder: (_, child, progress) {
-              if (progress == null) return child;
-              final total = progress.expectedTotalBytes;
-              return Center(
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  value: total != null && total > 0
-                      ? progress.cumulativeBytesLoaded / total
-                      : null,
-                ),
-              );
-            },
-          ),
         ),
       ),
     );

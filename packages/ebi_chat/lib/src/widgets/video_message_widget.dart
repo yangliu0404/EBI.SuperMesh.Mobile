@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/chat_message.dart';
+import 'package:ebi_core/ebi_core.dart';
+import 'package:ebi_chat/src/models/im_models.dart';
 import 'package:ebi_chat/src/pages/file_preview_page.dart';
+import 'package:ebi_chat/src/pages/media_gallery_page.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 import 'package:ebi_chat/src/widgets/file_message_widget.dart';
 
@@ -43,28 +48,101 @@ class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
     return ossService.getImageThumbnailUrl(ossPath, maxWidth: 320, maxHeight: 240);
   }
 
-  void _retry() {
-    final ossPath = widget.message.content;
-    if (ossPath.isNotEmpty) {
-      ref.read(ossUrlServiceProvider).evict(ossPath);
-    }
-    setState(() {
-      _thumbnailFailed = false;
-      _thumbnailFuture = _resolveThumbnail();
-    });
-  }
-
-  void _openPreview() {
+  Future<void> _openPreview() async {
     final ossPath = widget.message.content;
     if (ossPath.isEmpty) return;
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FilePreviewPage(
-          ossPath: ossPath,
-          fileName: widget.message.fileName,
+
+    if (!mounted) return;
+    
+    // Show a loading indicator if fetching takes time
+    unawaited(showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    ));
+
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      final isGroup = widget.message.roomId.startsWith('group:');
+      final groupId = isGroup ? widget.message.roomId.substring(6) : widget.message.roomId; 
+      
+      final history = await repo.getMediaMessages(
+        groupId: isGroup ? groupId : null,
+        receiveUserId: !isGroup ? widget.message.roomId : null, 
+        maxResultCount: 100,
+      );
+      
+      if (!mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
+
+      // Convert ChatMessage to ImChatMessage for the gallery
+      final List<ImChatMessage> galleryItems = history.map((e) => ImChatMessage(
+        messageId: e.id,
+        groupId: isGroup ? groupId : '',
+        formUserId: e.senderId,
+        formUserName: e.senderName,
+        messageType: e.type == MessageType.image ? ImMessageType.image.value : ImMessageType.video.value,
+        content: e.content,
+        sendTime: e.createdAt.toIso8601String(),
+        extraProperties: {
+          'fileName': e.fileName,
+          'fileSize': e.fileSize,
+          'fileExt': e.fileExt,
+          'mimeType': e.mimeType,
+        },
+      )).toList();
+
+      int initialIndex = galleryItems.indexWhere((m) => m.messageId == widget.message.id);
+      if (initialIndex < 0) {
+        // Fallback if not found in recent 100
+        final fallbackMsg = ImChatMessage(
+          messageId: widget.message.id,
+          groupId: isGroup ? groupId : '',
+          formUserId: widget.message.senderId,
+          formUserName: widget.message.senderName,
+          messageType: ImMessageType.video.value,
+          content: ossPath,
+          sendTime: widget.message.createdAt.toIso8601String(),
+        );
+        galleryItems.insert(0, fallbackMsg);
+        initialIndex = 0;
+      }
+
+      await Navigator.of(context).push(
+        FadePageRoute(
+          page: MediaGalleryPage(
+            mediaMessages: galleryItems,
+            initialIndex: initialIndex,
+            groupId: isGroup ? groupId : null,
+            userId: !isGroup ? widget.message.roomId : null,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      if (mounted) Navigator.of(context).pop(); // dismiss
+      AppLogger.error('[VideoMessageWidget] Failed to load gallery context', e);
+      
+      // Fallback: Just open this single video
+      if (!mounted) return;
+      final fallbackMsg = ImChatMessage(
+        messageId: widget.message.id,
+        groupId: widget.message.roomId,
+        formUserId: widget.message.senderId,
+        formUserName: widget.message.senderName,
+        messageType: ImMessageType.video.value,
+        content: ossPath,
+        sendTime: widget.message.createdAt.toIso8601String(),
+      );
+      await Navigator.of(context).push(
+        FadePageRoute(
+          page: MediaGalleryPage(
+            mediaMessages: [fallbackMsg],
+            initialIndex: 0,
+            groupId: widget.message.roomId, 
+          ),
+        ),
+      );
+    }
   }
 
   @override

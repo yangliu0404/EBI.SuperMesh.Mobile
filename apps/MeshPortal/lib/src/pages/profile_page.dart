@@ -25,10 +25,6 @@ class ProfilePage extends ConsumerWidget {
 
   // Height of the curved arc at the bottom of the gradient
   static const _curveHeight = 40.0;
-  // How far the stats card pulls up into the gradient
-  static const _statsCardHeight = 120.0;
-  static const _statsOverlap = 50.0;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);

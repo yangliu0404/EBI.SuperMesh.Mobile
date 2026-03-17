@@ -12,6 +12,7 @@ class ImGroup {
   final String? avatarUrl;
   final String? notice;
   final String? description;
+  final String? alias;
   final String? adminUserId;
   final String? tag;
   final int maxUserCount;
@@ -26,6 +27,7 @@ class ImGroup {
     this.avatarUrl,
     this.notice,
     this.description,
+    this.alias,
     this.adminUserId,
     this.tag,
     this.maxUserCount = 200,
@@ -42,6 +44,7 @@ class ImGroup {
       avatarUrl: json['avatarUrl'] as String?,
       notice: json['notice'] as String?,
       description: json['description'] as String?,
+      alias: json['alias'] as String?,
       adminUserId: json['adminUserId'] as String?,
       tag: json['tag'] as String?,
       maxUserCount: json['maxUserCount'] as int? ?? 200,

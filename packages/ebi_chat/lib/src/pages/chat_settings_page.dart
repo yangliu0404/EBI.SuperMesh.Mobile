@@ -7,6 +7,7 @@ import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:ebi_chat/src/pages/user_selection_page.dart';
 import 'package:ebi_chat/src/pages/create_group_page.dart';
+import 'package:ebi_chat/src/pages/message_search_page.dart';
 
 /// Chat settings page for 1-to-1 private chats (DingDing-style).
 ///
@@ -58,7 +59,7 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('聊天设置', style: TextStyle(fontWeight: FontWeight.w500)),
+        title: const Text('聊天设置', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
         backgroundColor: const Color(0xFFF2F2F6),
         foregroundColor: const Color(0xFF111111),
         elevation: 0,
@@ -250,10 +251,10 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
                 spacing: 0,
                 runSpacing: 20,
                 children: [
-                  _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: _searchHistory),
-                  _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _showComingSoon('图片及视频')),
-                  _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _showComingSoon('文件')),
-                  _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _showComingSoon('链接')),
+                  _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: () => _searchHistory(0)),
+                  _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _searchHistory(1)),
+                  _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _searchHistory(2)),
+                  _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _searchHistory(3)),
                   
                   // ERP & Enterprise integrations
                   _categoryIcon(Icons.assignment_outlined, '相关项目', width: itemWidth, onTap: () => _showComingSoon('相关项目')),
@@ -433,9 +434,14 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     }
   }
 
-  void _searchHistory() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('搜索聊天记录功能开发中')),
+  void _searchHistory([int initialIndex = 0]) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MessageSearchPage(
+          userId: widget.otherUserId,
+          initialTabIndex: initialIndex,
+        ),
+      ),
     );
   }
 

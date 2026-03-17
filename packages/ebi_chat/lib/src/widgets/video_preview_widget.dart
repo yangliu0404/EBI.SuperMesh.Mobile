@@ -92,7 +92,8 @@ class _VideoPreviewWidgetState extends ConsumerState<VideoPreviewWidget> {
         looping: false,
         allowFullScreen: true,
         allowMuting: true,
-        showControlsOnInitialize: true,
+        showControls: true, // Enable controls so a tap toggles play/pause
+        showControlsOnInitialize: false,
         materialProgressColors: ChewieProgressColors(
           playedColor: EbiColors.primaryBlue,
           handleColor: EbiColors.primaryBlue,

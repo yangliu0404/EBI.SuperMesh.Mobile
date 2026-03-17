@@ -25,36 +25,35 @@ class MediaActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buttons = <Widget>[];
+
+    if (onForward != null) {
+      buttons.add(_CircleButton(icon: Icons.send_rounded, tooltip: '转发', onTap: onForward));
+    }
+    if (onDownload != null) {
+      buttons.add(_CircleButton(icon: Icons.download_rounded, tooltip: '保存/下载', onTap: onDownload));
+    }
+    if (onGallery != null) {
+      buttons.add(_CircleButton(icon: Icons.grid_view_rounded, tooltip: '历史多媒体', onTap: onGallery));
+    }
+    if (onShare != null) {
+      buttons.add(_CircleButton(icon: Icons.more_horiz_rounded, tooltip: '更多', onTap: onShare));
+    }
+
+    final columnChildren = <Widget>[];
+    for (int i = 0; i < buttons.length; i++) {
+      columnChildren.add(buttons[i]);
+      if (i < buttons.length - 1) {
+        columnChildren.add(const SizedBox(height: 12));
+      }
+    }
+
     return Positioned(
       right: 16,
       bottom: 32,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          _CircleButton(
-            icon: Icons.send_rounded,
-            tooltip: '转发',
-            onTap: onForward,
-          ),
-          const SizedBox(height: 12),
-          _CircleButton(
-            icon: Icons.download_rounded,
-            tooltip: '下载',
-            onTap: onDownload,
-          ),
-          const SizedBox(height: 12),
-          _CircleButton(
-            icon: Icons.photo_library_rounded,
-            tooltip: '画廊',
-            onTap: onGallery,
-          ),
-          const SizedBox(height: 12),
-          _CircleButton(
-            icon: Icons.more_horiz_rounded,
-            tooltip: '更多',
-            onTap: onShare,
-          ),
-        ],
+        children: columnChildren,
       ),
     );
   }
