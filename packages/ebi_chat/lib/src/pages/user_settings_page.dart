@@ -1,25 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_chat/src/widgets/forward_sheet.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
+import 'package:ebi_chat/src/models/im_models.dart';
 
 /// User settings page — accessed from UserProfilePage AppBar ⋮.
 ///
 /// Contains: edit remark, permissions (placeholder), recommend to colleague,
 /// blacklist (placeholder), report (placeholder).
-class UserSettingsPage extends StatefulWidget {
+class UserSettingsPage extends ConsumerStatefulWidget {
   final String userId;
   final String userName;
+  final String? avatarUrl;
 
   const UserSettingsPage({
     super.key,
     required this.userId,
     required this.userName,
+    this.avatarUrl,
   });
 
   @override
-  State<UserSettingsPage> createState() => _UserSettingsPageState();
+  ConsumerState<UserSettingsPage> createState() => _UserSettingsPageState();
 }
 
-class _UserSettingsPageState extends State<UserSettingsPage> {
+class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
   String _remarkName = '';
 
   @override
@@ -160,11 +167,55 @@ class _UserSettingsPageState extends State<UserSettingsPage> {
     );
   }
 
-  void _shareUser() {
-    // TODO: Open conversation picker to forward user card.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('推荐给同事功能开发中')),
-    );
+  Future<void> _shareUser() async {
+    final target = await showForwardSheet(context, ref);
+    if (target == null || !mounted) return;
+
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      final currentUserId = ref.read(authProvider).user?.id ?? '';
+      
+      // We will use the target user's ID or name as the "content" of the contactCard. 
+      // Ideally, the content should be a JSON containing user info if the backend prefers it,
+      // but here we just use the name for the UI display format `[个人名片] xxx`.
+      final cardContent = widget.userName;
+      
+      final extraProps = <String, dynamic>{
+        'UserId': widget.userId,
+        'UserName': widget.userName,
+        if (widget.avatarUrl != null) 'AvatarUrl': widget.avatarUrl!,
+      };
+
+      final fwdMessage = ImChatMessage(
+        messageId: '',
+        formUserId: currentUserId,
+        formUserName: '', // backend can fill
+        toUserId: target.type == 'user' ? target.conversationKey : null,
+        groupId: target.groupId ?? '',
+        content: cardContent,
+        sendTime: DateTime.now().toUtc().toIso8601String(),
+        messageType: ImMessageType.contactCard.value,
+        source: ImMessageSourceType.user.value,
+        extraProperties: extraProps,
+      );
+      
+      await repo.sendMessage(fwdMessage);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('名片已发送给 ${target.displayName}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('发送失败: $e')),
+        );
+      }
+    }
   }
 
   void _showComingSoon(String feature) {

@@ -14,7 +14,8 @@ enum ImMessageType {
   voiceCall(60),
   videoCall(70),
   meeting(80),
-  notifier(100);
+  notifier(100),
+  contactCard(90);
 
   const ImMessageType(this.value);
   final int value;

@@ -502,6 +502,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.audio => ImMessageType.voice.value,
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.notifier.value,
+        MessageType.contactCard => ImMessageType.contactCard.value,
       };
       extraProps = {
         'quotedMessageId': _replyingTo!.id,
@@ -592,6 +593,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.audio => ImMessageType.voice.value,
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.text.value,
+        MessageType.contactCard => ImMessageType.contactCard.value,
       };
 
       final imMessage = ImChatMessage(
@@ -700,6 +702,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.audio => ImMessageType.voice.value,
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.text.value,
+        MessageType.contactCard => ImMessageType.contactCard.value,
       };
 
       final forwardContent = message.fileUrl ?? message.content;
@@ -1832,6 +1835,22 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
               child: Text(
                 msg.content,
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 13, color: EbiColors.textSecondary),
+              ),
+            ),
+          ],
+        );
+        
+      case MessageType.contactCard:
+        return Row(
+          children: [
+            const Icon(Icons.person, size: 16, color: EbiColors.textHint),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '[个人名片] ${msg.content}',
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontSize: 13, color: EbiColors.textSecondary),
               ),

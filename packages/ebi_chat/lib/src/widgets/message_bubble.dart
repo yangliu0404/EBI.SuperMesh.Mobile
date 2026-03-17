@@ -232,7 +232,55 @@ class MessageBubble extends StatelessWidget {
         return AudioMessageWidget(message: message, isMe: isMe);
       case MessageType.system:
         return const SizedBox.shrink();
+      case MessageType.contactCard:
+        return _buildContactCardContent();
     }
+  }
+
+  Widget _buildContactCardContent() {
+    return Container(
+      width: 200,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isMe ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF7F8FA),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: isMe ? Colors.white.withValues(alpha: 0.3) : const Color(0xFFE2EFFF),
+            radius: 20,
+            child: Icon(Icons.person, color: isMe ? Colors.white : const Color(0xFF0052D9)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.content, // Content holds the display name
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isMe ? Colors.white : const Color(0xFF111111),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '个人名片',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isMe ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF999999),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTimeAndStatus() {
