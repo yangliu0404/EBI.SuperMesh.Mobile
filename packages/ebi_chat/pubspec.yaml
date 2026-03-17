@@ -11,8 +11,31 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_riverpod: ^2.6.1
   ebi_models:
     path: ../ebi_models
+  ebi_ui_kit:
+    path: ../ebi_ui_kit
+  ebi_core:
+    path: ../ebi_core
+  cached_network_image: ^3.4.1
+  intl: ^0.19.0
+  uuid: ^4.5.1
+  signalr_netcore: ^1.4.4
+  url_launcher: ^6.2.0
+  image_picker: ^1.1.2
+  file_picker: ^8.1.7
+  mime: ^2.0.0
+  path_provider: ^2.1.5
+  open_file_plus: ^3.4.1
+  share_plus: ^10.1.4
+  pdfrx: ^1.0.97
+  video_player: ^2.9.5
+  chewie: ^1.10.0
+  just_audio: ^0.9.46
+  flutter_highlight: ^0.7.0
+  flutter_markdown_community: ^0.7.7+2
+  highlight: ^0.7.0
 
 dev_dependencies:
   flutter_test:

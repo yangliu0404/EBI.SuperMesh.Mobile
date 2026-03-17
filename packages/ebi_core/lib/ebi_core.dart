@@ -1,5 +1,8 @@
 library ebi_core;
 
+// Config
+export 'src/config/app_config.dart';
+
 // Network
 export 'src/network/api_client.dart';
 export 'src/network/api_endpoints.dart';
@@ -13,10 +16,12 @@ export 'src/auth/token_storage.dart';
 export 'src/auth/tenant_storage.dart';
 export 'src/auth/auth_repository.dart';
 export 'src/auth/mock_auth_repository.dart';
+export 'src/auth/abp_auth_repository.dart';
 
 // Providers
 export 'src/providers/auth_state.dart';
 export 'src/providers/core_providers.dart';
+export 'src/providers/abp_config_provider.dart';
 
 // Settings
 export 'src/providers/settings_state.dart';
@@ -25,6 +30,7 @@ export 'src/providers/settings_providers.dart';
 // Notifications
 export 'src/notifications/notification_repository.dart';
 export 'src/notifications/mock_notification_repository.dart';
+export 'src/notifications/abp_notification_repository.dart';
 export 'src/providers/notification_providers.dart';
 
 // Utils

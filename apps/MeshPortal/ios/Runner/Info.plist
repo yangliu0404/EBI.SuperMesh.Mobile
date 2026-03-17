@@ -45,5 +45,10 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MeshPortal needs access to your photo library to send images in chat.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>MeshPortal needs access to your camera to take photos for chat.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>MeshPortal needs access to your microphone to record videos for chat.</string>
 </dict>
-</plist>

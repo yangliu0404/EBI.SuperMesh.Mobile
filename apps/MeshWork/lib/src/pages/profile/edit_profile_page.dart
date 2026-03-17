@@ -17,6 +17,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late final TextEditingController _phoneController;
   late final TextEditingController _companyController;
 
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
@@ -70,18 +72,60 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             prefixIcon: Icons.business_outlined,
           ),
           const SizedBox(height: 32),
+          const SizedBox(height: 32),
           EbiButton(
-            text: 'Save Changes',
+            text: _isSaving ? 'Saving...' : 'Save Changes',
             width: double.infinity,
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Profile updated'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-              Navigator.of(context).pop();
-            },
+            onPressed: _isSaving
+                ? null
+                : () async {
+                    setState(() => _isSaving = true);
+                    try {
+                      // Call backend API
+                      // Note: updateMyProfile takes name, surname, email, phoneNumber based on Volo.Abp.Account.UpdateProfileDto
+                      final apiClient = ref.read(apiClientProvider);
+                      // Fetch the actual current profile to safely get userName
+                      // The API returns { "name": ..., "userName": ..., "email": ...}
+                      final currentProfile = await apiClient.getMyProfile();
+                      final userName = currentProfile['userName'] as String? ?? '';
+                      final extraProperties = currentProfile['extraProperties'] as Map<String, dynamic>? ?? {};
+
+                      await apiClient.updateMyProfile({
+                        // ABP requires userName in UpdateProfileDto
+                        'userName': userName,
+                        'name': _nameController.text.trim(),
+                        'surname': currentProfile['surname'] ?? '', // Preserve existing surname
+                        'email': _emailController.text.trim(),
+                        'phoneNumber': _phoneController.text.trim(),
+                        'extraProperties': extraProperties,
+                      });
+
+                      // Refresh user info
+                      await ref.read(authProvider.notifier).fetchUserInfo();
+
+                      if (!mounted) return;
+                      final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      
+                      scaffoldMessenger.showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile updated successfully'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      navigator.pop();
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to update profile: $e'),
+                          backgroundColor: EbiColors.error,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      setState(() => _isSaving = false);
+                    }
+                  },
           ),
         ],
       ),

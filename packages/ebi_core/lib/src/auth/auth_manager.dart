@@ -22,17 +22,17 @@ class AuthManager {
     required String password,
   }) async {
     final response = await _apiClient.post(
-      ApiEndpoints.login,
+      ApiEndpoints.connectToken,
       data: {
         'account': account,
         'password': password,
       },
     );
 
-    final data = response.data['data'] as Map<String, dynamic>;
+    final data = response.data as Map<String, dynamic>;
     await _tokenStorage.saveTokens(
       accessToken: data['access_token'] as String,
-      refreshToken: data['refresh_token'] as String,
+      refreshToken: data['refresh_token'] as String? ?? '',
     );
 
     return data;
@@ -41,7 +41,7 @@ class AuthManager {
   /// Log out and clear stored tokens.
   Future<void> logout() async {
     try {
-      await _apiClient.post(ApiEndpoints.logout);
+      await _apiClient.post(ApiEndpoints.connectRevocation);
     } catch (_) {
       // Ignore errors during logout — clear tokens regardless.
     }
@@ -50,7 +50,7 @@ class AuthManager {
 
   /// Fetch the current user's profile.
   Future<Map<String, dynamic>> getProfile() async {
-    final response = await _apiClient.get(ApiEndpoints.profile);
-    return response.data['data'] as Map<String, dynamic>;
+    final response = await _apiClient.get(ApiEndpoints.connectUserInfo);
+    return response.data as Map<String, dynamic>;
   }
 }

@@ -1,0 +1,242 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_chat/src/chat_message.dart';
+import 'package:ebi_chat/src/pages/file_preview_page.dart';
+import 'package:ebi_chat/src/services/oss_url_service.dart';
+import 'package:ebi_chat/src/widgets/file_message_widget.dart';
+
+/// Displays a video message with thumbnail preview + play button overlay.
+/// Tapping navigates to [FilePreviewPage] for full video playback.
+class VideoMessageWidget extends ConsumerStatefulWidget {
+  final ChatMessage message;
+  final bool isMe;
+
+  const VideoMessageWidget({
+    super.key,
+    required this.message,
+    required this.isMe,
+  });
+
+  @override
+  ConsumerState<VideoMessageWidget> createState() =>
+      _VideoMessageWidgetState();
+}
+
+class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
+  late Future<String> _thumbnailFuture;
+  bool _thumbnailFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _thumbnailFuture = _resolveThumbnail();
+  }
+
+  Future<String> _resolveThumbnail() {
+    final ossPath = widget.message.content;
+    if (ossPath.isEmpty) {
+      return Future.error(const OssUrlException('No video path'));
+    }
+    // Use the same thumbnail URL pattern (server-side generates video thumbnail).
+    final ossService = ref.read(ossUrlServiceProvider);
+    return ossService.getImageThumbnailUrl(ossPath, maxWidth: 320, maxHeight: 240);
+  }
+
+  void _retry() {
+    final ossPath = widget.message.content;
+    if (ossPath.isNotEmpty) {
+      ref.read(ossUrlServiceProvider).evict(ossPath);
+    }
+    setState(() {
+      _thumbnailFailed = false;
+      _thumbnailFuture = _resolveThumbnail();
+    });
+  }
+
+  void _openPreview() {
+    final ossPath = widget.message.content;
+    if (ossPath.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FilePreviewPage(
+          ossPath: ossPath,
+          fileName: widget.message.fileName,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _openPreview,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
+          color: EbiColors.divider,
+          child: FutureBuilder<String>(
+            future: _thumbnailFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return _buildPlaceholder(loading: true);
+              }
+              if (snapshot.hasError ||
+                  !snapshot.hasData ||
+                  snapshot.data!.isEmpty) {
+                return _buildFallbackCard();
+              }
+              if (_thumbnailFailed) {
+                return _buildFallbackCard();
+              }
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(
+                    snapshot.data!,
+                    fit: BoxFit.cover,
+                    width: 250,
+                    height: 180,
+                    errorBuilder: (_, __, ___) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted && !_thumbnailFailed) {
+                          setState(() => _thumbnailFailed = true);
+                        }
+                      });
+                      return _buildFallbackCard();
+                    },
+                    loadingBuilder: (_, child, progress) {
+                      if (progress == null) {
+                        return Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            child,
+                            _buildPlayButton(),
+                            _buildDurationBadge(),
+                          ],
+                        );
+                      }
+                      return _buildPlaceholder(loading: true);
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Fallback when thumbnail unavailable: dark card with play icon + file name.
+  Widget _buildFallbackCard() {
+    final fgColor = widget.isMe ? EbiColors.white : EbiColors.textPrimary;
+    return Container(
+      width: 220,
+      height: 120,
+      color: widget.isMe
+          ? Colors.black.withValues(alpha: 0.2)
+          : Colors.grey.shade200,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.videocam_rounded,
+                size: 36,
+                color: fgColor.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  widget.message.fileName ?? '视频',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: fgColor.withValues(alpha: 0.8),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              if (widget.message.fileSize != null)
+                Text(
+                  formatFileSize(widget.message.fileSize),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: fgColor.withValues(alpha: 0.5),
+                  ),
+                ),
+            ],
+          ),
+          _buildPlayButton(size: 36),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayButton({double size = 48}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(
+        Icons.play_arrow_rounded,
+        size: size * 0.6,
+        color: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDurationBadge() {
+    final sizeText = formatFileSize(widget.message.fileSize);
+    if (sizeText.isEmpty) return const SizedBox.shrink();
+    return Positioned(
+      right: 6,
+      bottom: 6,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          sizeText,
+          style: const TextStyle(
+            fontSize: 10,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder({bool loading = false}) {
+    return Container(
+      width: 220,
+      height: 150,
+      color: EbiColors.divider,
+      child: Center(
+        child: loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(
+                Icons.videocam_rounded,
+                size: 32,
+                color: EbiColors.textHint,
+              ),
+      ),
+    );
+  }
+}

@@ -11,3 +11,5 @@ export 'src/widgets/ebi_card.dart';
 export 'src/widgets/ebi_app_bar.dart';
 export 'src/widgets/ebi_loading.dart';
 export 'src/widgets/ebi_empty_state.dart';
+export 'src/widgets/ebi_text_field.dart';
+export 'src/widgets/ebi_avatar.dart';

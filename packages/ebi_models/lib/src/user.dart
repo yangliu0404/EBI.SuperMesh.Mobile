@@ -41,6 +41,33 @@ class User {
     );
   }
 
+  /// Create a User from ABP `/connect/userinfo` response.
+  factory User.fromUserInfo(Map<String, dynamic> json) {
+    final sub = json['sub'] as String? ?? '';
+    final givenName = json['given_name'] as String? ?? '';
+    final familyName = json['family_name'] as String? ?? '';
+    final name = json['name'] as String? ??
+        '$givenName $familyName'.trim();
+
+    // Map ABP roles to UserRole.
+    final roles = json['role'];
+    UserRole role = UserRole.employee;
+    if (roles is List && roles.contains('admin')) {
+      role = UserRole.admin;
+    } else if (roles is String && roles == 'admin') {
+      role = UserRole.admin;
+    }
+
+    return User(
+      id: sub,
+      name: name.isNotEmpty ? name : sub,
+      email: json['email'] as String? ?? '',
+      phone: json['phone_number'] as String?,
+      avatar: json['avatar_url'] as String? ?? json['picture'] as String?,
+      role: role,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,

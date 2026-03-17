@@ -6,10 +6,13 @@ import 'package:ebi_models/ebi_models.dart';
 
 import 'profile/coming_soon_page.dart';
 import 'profile/edit_profile_page.dart';
+import 'profile/feedback_page.dart';
 import 'profile/language_settings_page.dart';
 import 'profile/notification_settings_page.dart';
 import 'profile/appearance_settings_page.dart';
 import 'profile/about_page.dart';
+import 'profile/terms_of_service_page.dart';
+import 'profile/privacy_policy_page.dart';
 import 'profile/switch_account_sheet.dart';
 
 /// Premium business-style profile page for MeshWork.
@@ -150,7 +153,7 @@ class ProfilePage extends ConsumerWidget {
                 color: const Color(0xFF8B5CF6),
                 title: 'Feedback',
                 onTap: () =>
-                    _push(context, const ComingSoonPage(title: 'Feedback')),
+                    _push(context, const FeedbackPage()),
               ),
               _MenuTile(
                 icon: Icons.info_outline,
@@ -162,15 +165,13 @@ class ProfilePage extends ConsumerWidget {
                 icon: Icons.description_outlined,
                 color: const Color(0xFF14B8A6),
                 title: 'Terms of Service',
-                onTap: () => _push(context,
-                    const ComingSoonPage(title: 'Terms of Service')),
+                onTap: () => _push(context, const TermsOfServicePage()),
               ),
               _MenuTile(
                 icon: Icons.policy_outlined,
                 color: const Color(0xFF3B82F6),
                 title: 'Privacy Policy',
-                onTap: () => _push(
-                    context, const ComingSoonPage(title: 'Privacy Policy')),
+                onTap: () => _push(context, const PrivacyPolicyPage()),
               ),
             ]),
 
