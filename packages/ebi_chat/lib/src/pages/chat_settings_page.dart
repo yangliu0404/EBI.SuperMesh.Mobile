@@ -59,7 +59,7 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('聊天设置', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w500)),
+        title: const Text('聊天设置'),
         backgroundColor: const Color(0xFFF2F2F6),
         foregroundColor: const Color(0xFF111111),
         elevation: 0,

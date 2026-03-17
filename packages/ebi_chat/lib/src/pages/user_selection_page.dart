@@ -113,6 +113,8 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
       if (!widget.multiSelect) {
         _selectedUsers.clear();
         _selectedUsers[userId] = user;
+        // In single-select mode, there is no confirm bottom bar, so we return immediately.
+        Navigator.of(context).pop([user]);
       } else {
         if (_selectedUsers.containsKey(userId)) {
           // Can't unselect if it was originally selected and is marked disabled

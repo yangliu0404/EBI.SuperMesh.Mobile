@@ -149,13 +149,17 @@ extension ImChatMessageMapper on ImChatMessage {
   }
 
   String? _extractFileName() {
-    return extraProperties?['fileName'] as String?;
+    return extraProperties?['fileName']?.toString() 
+        ?? extraProperties?['FileName']?.toString()
+        ?? extraProperties?['name']?.toString()
+        ?? extraProperties?['Name']?.toString();
   }
 
   /// Extract file extension with fallback chain:
   /// extraProperties['fileExt'] → fileName → content (ossPath).
   String? _extractFileExt() {
-    final ext = extraProperties?['fileExt'] as String?;
+    final ext = extraProperties?['fileExt']?.toString() 
+             ?? extraProperties?['FileExt']?.toString();
     if (ext != null && ext.isNotEmpty) return ext;
     // Fallback: derive from fileName.
     final name = _extractFileName();
@@ -173,7 +177,12 @@ extension ImChatMessageMapper on ImChatMessage {
   }
 
   int? _extractInt(String key) {
-    final value = extraProperties?[key];
+    var value = extraProperties?[key];
+    if (value == null && key.isNotEmpty) {
+      // Try PascalCase
+      final pascalKey = key[0].toUpperCase() + key.substring(1);
+      value = extraProperties?[pascalKey];
+    }
     if (value is int) return value;
     if (value is num) return value.toInt();
     if (value is String) return int.tryParse(value);

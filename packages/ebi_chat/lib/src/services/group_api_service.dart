@@ -136,6 +136,9 @@ class GroupApiService {
     String? receiveUserId,
     String? groupId,
     int? messageType,
+    String? formUserId,
+    String? startTime,
+    String? endTime,
     int skipCount = 0,
     int maxResultCount = 20,
   }) async {
@@ -144,6 +147,9 @@ class GroupApiService {
       if (receiveUserId != null) 'receiveUserId': receiveUserId,
       if (groupId != null) 'groupId': groupId,
       if (messageType != null) 'messageType': messageType,
+      if (formUserId != null) 'formUserId': formUserId,
+      if (startTime != null) 'startTime': startTime,
+      if (endTime != null) 'endTime': endTime,
       'skipCount': skipCount,
       'maxResultCount': maxResultCount,
     });

@@ -101,7 +101,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('群设置', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 17)),
+        title: const Text('群设置'),
         backgroundColor: const Color(0xFFF2F2F6),
         foregroundColor: const Color(0xFF111111),
         elevation: 0,

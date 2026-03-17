@@ -10,6 +10,7 @@ import 'package:ebi_chat/src/pages/file_preview_page.dart';
 import 'package:ebi_chat/src/pages/media_gallery_page.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 import 'package:ebi_chat/src/widgets/file_message_widget.dart';
+import 'package:ebi_chat/src/pages/user_selection_page.dart';
 
 class MessageSearchPage extends ConsumerStatefulWidget {
   final String? groupId;
@@ -37,6 +38,10 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
   bool _isLoading = false;
   List<ImChatMessage> _results = [];
   String? _errorMsg;
+
+  String? _selectedSenderId;
+  String? _selectedSenderName;
+  DateTimeRange? _selectedDateRange;
 
   @override
   void initState() {
@@ -133,14 +138,40 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
         // Ensure sorting descending by time for combined lists (or general fallback)
         resultItems.sort((a, b) => b.sendTime.compareTo(a.sendTime));
         
+        // Apply manual filters
+        if (_selectedSenderId != null) {
+          resultItems = resultItems.where((e) => e.formUserId == _selectedSenderId).toList();
+        }
+        if (_selectedDateRange != null) {
+          final start = _selectedDateRange!.start;
+          final end = _selectedDateRange!.end.add(const Duration(days: 1));
+          resultItems = resultItems.where((e) {
+            final dt = DateTime.tryParse(e.sendTime)?.toLocal();
+            if (dt == null) return false;
+            return dt.isAfter(start) && dt.isBefore(end);
+          }).toList();
+        }
+
       } else {
         // Normal search API
+        String? startTime;
+        String? endTime;
+        if (_selectedDateRange != null) {
+          final start = _selectedDateRange!.start;
+          final end = _selectedDateRange!.end.add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
+          startTime = start.toUtc().toIso8601String();
+          endTime = end.toUtc().toIso8601String();
+        }
+
         final api = ref.read(groupApiServiceProvider);
         final res = await api.searchMessages(
           filter: query,
           groupId: widget.groupId,
           receiveUserId: widget.userId,
           messageType: messageType,
+          formUserId: _selectedSenderId,
+          startTime: startTime,
+          endTime: endTime,
           maxResultCount: 50,
         );
         final itemsList = res['items'] as List<dynamic>? ?? [];
@@ -261,8 +292,33 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
       child: Wrap(
         spacing: 8,
         children: [
-          _buildFilterChip('发送人', Icons.arrow_drop_down),
-          _buildFilterChip('时间', Icons.arrow_drop_down),
+          _buildFilterChip(
+            _selectedSenderName ?? '发送人', 
+            Icons.arrow_drop_down,
+            isActive: _selectedSenderId != null,
+            onTap: _selectSender,
+            onClear: () {
+              setState(() {
+                _selectedSenderId = null;
+                _selectedSenderName = null;
+              });
+              _doSearch(_searchQuery);
+            },
+          ),
+          _buildFilterChip(
+            _selectedDateRange != null 
+                ? '${_selectedDateRange!.start.year}-${_selectedDateRange!.start.month.toString().padLeft(2, '0')}-${_selectedDateRange!.start.day.toString().padLeft(2, '0')} 至 ${_selectedDateRange!.end.year}-${_selectedDateRange!.end.month.toString().padLeft(2, '0')}-${_selectedDateRange!.end.day.toString().padLeft(2, '0')}'
+                : '时间', 
+            Icons.arrow_drop_down,
+            isActive: _selectedDateRange != null,
+            onTap: _selectDateRange,
+            onClear: () {
+              setState(() {
+                _selectedDateRange = null;
+              });
+              _doSearch(_searchQuery);
+            },
+          ),
           if (_tabController.index == 0) _buildFilterChip('@用户', Icons.arrow_drop_down),
           if (_tabController.index == 2) _buildFilterChip('钉盘上传', Icons.arrow_drop_down),
         ],
@@ -270,23 +326,67 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
     );
   }
 
-  Widget _buildFilterChip(String label, IconData icon) {
+  Future<void> _selectSender() async {
+    final results = await Navigator.of(context).push<List<Map<String, dynamic>>>(
+      MaterialPageRoute(
+        builder: (_) => const UserSelectionPage(
+          title: '选择发送人',
+          multiSelect: false,
+          confirmButtonText: '确定',
+        ),
+      ),
+    );
+
+    if (results != null && results.isNotEmpty) {
+      final selected = results.first;
+      setState(() {
+        _selectedSenderId = selected['id']?.toString();
+        _selectedSenderName = selected['name']?.toString() ?? selected['userName']?.toString();
+      });
+      _doSearch(_searchQuery); // Re-trigger search
+    }
+  }
+
+  Future<void> _selectDateRange() async {
+    final now = DateTime.now();
+    final result = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: now,
+      initialDateRange: _selectedDateRange,
+    );
+    if (result != null) {
+      setState(() {
+        _selectedDateRange = result;
+      });
+      _doSearch(_searchQuery); // Re-trigger search
+    }
+  }
+
+  Widget _buildFilterChip(String label, IconData icon, {bool isActive = false, VoidCallback? onTap, VoidCallback? onClear}) {
     return GestureDetector(
-      onTap: () {
+      onTap: onTap ?? () {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$label筛选功能开发中')));
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         decoration: BoxDecoration(
-          color: const Color(0xFFE8E8E8),
+          color: isActive ? const Color(0xFFE2EFFF) : const Color(0xFFE8E8E8),
           borderRadius: BorderRadius.circular(12),
+          border: isActive ? Border.all(color: const Color(0xFF0052D9)) : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
+            Text(label, style: TextStyle(fontSize: 12, color: isActive ? const Color(0xFF0052D9) : const Color(0xFF666666))),
             const SizedBox(width: 4),
-            Icon(icon, size: 14, color: const Color(0xFF999999)),
+            if (isActive && onClear != null)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close, size: 14, color: Color(0xFF0052D9)),
+              )
+            else
+              Icon(icon, size: 14, color: isActive ? const Color(0xFF0052D9) : const Color(0xFF999999)),
           ],
         ),
       ),
