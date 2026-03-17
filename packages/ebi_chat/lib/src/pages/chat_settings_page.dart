@@ -5,6 +5,8 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
+import 'package:ebi_chat/src/pages/user_selection_page.dart';
+import 'package:ebi_chat/src/pages/create_group_page.dart';
 
 /// Chat settings page for 1-to-1 private chats (DingDing-style).
 ///
@@ -413,10 +415,22 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
 
   // ── Actions ────────────────────────────────────────────────────────
 
-  void _createGroupChat() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('创建群聊功能开发中')),
+  void _createGroupChat() async {
+    final selectedUsers = await Navigator.of(context).push<List<Map<String, dynamic>>>(
+      MaterialPageRoute(
+        builder: (_) => const UserSelectionPage(
+          title: '发起群聊',
+        ),
+      ),
     );
+
+    if (selectedUsers != null && selectedUsers.isNotEmpty && mounted) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => CreateGroupPage(selectedUsers: selectedUsers),
+        ),
+      );
+    }
   }
 
   void _searchHistory() {

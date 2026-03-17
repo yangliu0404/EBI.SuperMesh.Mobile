@@ -5,6 +5,7 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/services/group_api_service.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
+import 'package:ebi_chat/src/pages/user_selection_page.dart';
 
 /// Provider for the GroupApiService.
 final groupApiServiceProvider = Provider<GroupApiService>((ref) {
@@ -786,10 +787,36 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
     );
   }
 
-  void _inviteMembers() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('邀请成员功能开发中')),
+  void _inviteMembers() async {
+    final existingUserIds = _members.map((m) => m.userId).toSet();
+    final selectedUsers = await Navigator.of(context).push<List<Map<String, dynamic>>>(
+      MaterialPageRoute(
+        builder: (_) => UserSelectionPage(
+          title: '邀请联系人',
+          disabledIds: existingUserIds,
+          confirmButtonText: '确定邀请',
+        ),
+      ),
     );
+
+    if (selectedUsers != null && selectedUsers.isNotEmpty && mounted) {
+      try {
+        final api = ref.read(groupApiServiceProvider);
+        final userIds = selectedUsers.map((u) => (u['id'] as String).toLowerCase()).toList();
+        await api.inviteUsers(widget.groupId, userIds);
+        
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已发送入群邀请')),
+        );
+        _loadData(); // refresh member list
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('邀请失败: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _editField(String field, String currentValue) async {
@@ -941,7 +968,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
 
 // ── All Members Page ────────────────────────────────────────────────────
 
-class _AllMembersPage extends StatelessWidget {
+class _AllMembersPage extends ConsumerStatefulWidget {
   final List<ImGroupMember> members;
   final String groupId;
   final bool isOwner;
@@ -959,9 +986,88 @@ class _AllMembersPage extends StatelessWidget {
   });
 
   @override
+  ConsumerState<_AllMembersPage> createState() => _AllMembersPageState();
+}
+
+class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
+  late List<ImGroupMember> _localMembers;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _localMembers = List.from(widget.members);
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.trim().toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _confirmRemove(ImGroupMember member) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('移除成员'),
+            content: Text('确定要将 ${member.displayName} 移出群聊吗？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('移除'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _removeMember(ImGroupMember member) async {
+    try {
+      final api = ref.read(groupApiServiceProvider);
+      await api.removeUser(widget.groupId, member.userId);
+      
+      setState(() {
+        _localMembers.removeWhere((m) => m.userId == member.userId);
+      });
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已将 ${member.displayName} 移出群聊')),
+      );
+      
+      widget.onRefresh();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('移除失败: $e')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Filter by search
+    final filtered = _localMembers.where((m) {
+      if (_searchQuery.isEmpty) return true;
+      final matchName = m.displayName.toLowerCase().contains(_searchQuery) ||
+                        m.userName.toLowerCase().contains(_searchQuery);
+      return matchName;
+    }).toList();
+
     // Sort: owner first, then admins, then regular members.
-    final sorted = List<ImGroupMember>.from(members)
+    final sorted = List<ImGroupMember>.from(filtered)
       ..sort((a, b) {
         if (a.isSuperAdmin && !b.isSuperAdmin) return -1;
         if (!a.isSuperAdmin && b.isSuperAdmin) return 1;
@@ -970,30 +1076,223 @@ class _AllMembersPage extends StatelessWidget {
         return a.displayName.compareTo(b.displayName);
       });
 
+    // Simple grouping by first letter (Pinyin conversion omitted for simplicity right now, using English characters or #)
+    final Map<String, List<ImGroupMember>> grouped = {};
+    for (final m in sorted) {
+      final firstChar = m.displayName.isNotEmpty ? m.displayName[0].toUpperCase() : '#';
+      final isLetter = RegExp(r'[A-Z]').hasMatch(firstChar);
+      final key = isLetter ? firstChar : '#';
+      grouped.putIfAbsent(key, () => []).add(m);
+    }
+    
+    // Create flattened list with headers
+    final flattened = <dynamic>[];
+    final letters = grouped.keys.toList()..sort();
+    // Force # to bottom
+    if (letters.contains('#')) {
+      letters.remove('#');
+      letters.add('#');
+    }
+
+    for (final l in letters) {
+      flattened.add(l); // Header
+      flattened.addAll(grouped[l]!); // Members
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('全部成员 (${members.length})'),
-        backgroundColor: EbiColors.primaryBlue,
-        foregroundColor: EbiColors.white,
+        title: Column(
+          children: [
+            const Text('群成员', style: TextStyle(fontSize: 18, color: Color(0xFF111111), fontWeight: FontWeight.normal)),
+            Text('群成员${_localMembers.length}人，最多可添加1000人', style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 0,
-      ),
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: ListView.builder(
-        itemCount: sorted.length,
-        itemBuilder: (ctx, index) {
-          final member = sorted[index];
-          return _MemberTile(
-            member: member,
-            isCurrentUser: member.userId.toLowerCase() == currentUserId,
-            onTap: () {
-              Navigator.of(context).push(
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            onPressed: () async {
+              final selected = await Navigator.of(context).push<List<Map<String, dynamic>>>(
                 MaterialPageRoute(
-                  builder: (_) => UserProfilePage(userId: member.userId),
+                  builder: (_) => UserSelectionPage(
+                    title: '邀请群成员',
+                    confirmButtonText: '确定',
+                    disabledIds: _localMembers.map((m) => m.userId.toLowerCase()).toSet(),
+                  ),
                 ),
               );
+
+              if (selected != null && selected.isNotEmpty) {
+                try {
+                  final api = ref.read(groupApiServiceProvider);
+                  final userIds = selected.map((u) => u['id'] as String).toList();
+                  await api.inviteUsers(widget.groupId, userIds);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('已发送邀请')),
+                  );
+                  widget.onRefresh();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('邀请失败: $e')),
+                  );
+                }
+              }
             },
-          );
-        },
+          )
+        ],
+      ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // Search input
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Container(
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF2F2F6),
+                    borderRadius: BorderRadius.circular(19),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, size: 18, color: Color(0xFF999999)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) {
+                            setState(() {
+                              _searchQuery = val.trim().toLowerCase();
+                            });
+                          },
+                          decoration: const InputDecoration(
+                            hintText: '搜索',
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 6),
+                            hintStyle: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                          ),
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
+                        ),
+                      ),
+                      if (_searchQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                          child: const Icon(Icons.cancel, size: 16, color: Color(0xFFBDBDBD)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              // What is identity info
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF2F6FF),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.info_outline, size: 16, color: Color(0xFF0052D9)),
+                    SizedBox(width: 8),
+                    Text('什么是群身份', style: TextStyle(color: Color(0xFF0052D9), fontSize: 13)),
+                    Spacer(),
+                    Icon(Icons.chevron_right, size: 16, color: Color(0xFF0052D9)),
+                  ],
+                ),
+              ),
+              // List
+              Expanded(
+                child: ListView.builder(
+                  itemCount: flattened.length,
+                  itemBuilder: (ctx, index) {
+                    final item = flattened[index];
+                    if (item is String) {
+                      // Header
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: Text(item, style: const TextStyle(fontSize: 14, color: Color(0xFF999999))),
+                      );
+                    }
+
+                    final member = item as ImGroupMember;
+                    final isCurrentUser = member.userId.toLowerCase() == widget.currentUserId;
+                    
+                    final canRemove = !isCurrentUser &&
+                        (widget.isOwner || (widget.isAdmin && !member.isAdmin && !member.isSuperAdmin));
+
+                    Widget tile = _MemberTile(
+                      member: member,
+                      isCurrentUser: isCurrentUser,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => UserProfilePage(userId: member.userId),
+                          ),
+                        );
+                      },
+                    );
+
+                    if (canRemove) {
+                      tile = Dismissible(
+                        key: ValueKey(member.userId),
+                        direction: DismissDirection.endToStart,
+                        confirmDismiss: (_) => _confirmRemove(member),
+                        onDismissed: (_) => _removeMember(member),
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          color: Colors.red,
+                          child: const Icon(Icons.delete, color: Colors.white),
+                        ),
+                        child: tile,
+                      );
+                    }
+
+                    return tile;
+                  },
+                ),
+              ),
+            ],
+          ),
+          // Alphabet Scroller
+          Positioned(
+            right: 4,
+            top: 200,
+            bottom: 60,
+            width: 20,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: letters.map((l) {
+                return Expanded(
+                  child: Text(
+                    l,
+                    style: const TextStyle(fontSize: 10, color: Color(0xFF999999)),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }).toList(),
+            ),
+          )
+        ],
       ),
     );
   }
@@ -1014,88 +1313,85 @@ class _MemberTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      child: ListTile(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: GestureDetector(
         onTap: onTap,
-        leading: CircleAvatar(
-          radius: 20,
-          backgroundColor: const Color(0xFFE8F4FD),
-          backgroundImage: member.avatarUrl != null
-              ? NetworkImage(member.avatarUrl!)
-              : null,
-          child: member.avatarUrl == null
-              ? Text(
-                  member.displayName.characters.first,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF009FE3),
-                  ),
-                )
-              : null,
-        ),
-        title: Row(
+        child: Row(
           children: [
-            Flexible(
-              child: Text(
-                member.displayName,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14),
+            // Avatar
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F4FD),
+                borderRadius: BorderRadius.circular(10), // Squircle
+                image: member.avatarUrl != null && member.avatarUrl!.isNotEmpty
+                    ? DecorationImage(
+                        image: NetworkImage(member.avatarUrl!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
+              ),
+              alignment: Alignment.center,
+              child: (member.avatarUrl == null || member.avatarUrl!.isEmpty)
+                  ? Text(
+                      member.displayName.isNotEmpty ? member.displayName.characters.first : 'U',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0052D9),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            // Name and tags
+            Expanded(
+              child: Row(
+                children: [
+                  Flexible(
+                    child: Text(
+                      member.displayName,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 16, color: Color(0xFF111111)),
+                    ),
+                  ),
+                  if (member.isSuperAdmin || member.isAdmin || isCurrentUser) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isCurrentUser || member.isSuperAdmin 
+                            ? const Color(0xFFFFF2E8) 
+                            : const Color(0xFFE8F4FD),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        member.isSuperAdmin ? '群主' : (member.isAdmin ? '管理员' : '我'),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isCurrentUser || member.isSuperAdmin 
+                              ? const Color(0xFFFA8C16) 
+                              : const Color(0xFF0052D9),
+                        ),
+                      ),
+                    ),
+                  ]
+                ],
               ),
             ),
-            if (isCurrentUser)
+            // Set Role action
+            if (isCurrentUser) // In reality this would be checked against permissions
               Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F4FD),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E5E5)),
                 ),
-                child: const Text(
-                  '我',
-                  style: TextStyle(fontSize: 10, color: Color(0xFF009FE3)),
-                ),
-              ),
-            if (member.isSuperAdmin)
-              Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF2E8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '群主',
-                  style: TextStyle(fontSize: 10, color: Color(0xFFFA8C16)),
-                ),
-              ),
-            if (member.isAdmin && !member.isSuperAdmin)
-              Container(
-                margin: const EdgeInsets.only(left: 6),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFF2E8),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '管理员',
-                  style: TextStyle(fontSize: 10, color: Color(0xFFFA8C16)),
-                ),
+                child: const Text('设置身份', style: TextStyle(fontSize: 12, color: Color(0xFF666666))),
               ),
           ],
-        ),
-        subtitle: member.nickName != null && member.nickName != member.userName
-            ? Text(
-                '@${member.userName}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
-              )
-            : null,
-        trailing: const Icon(
-          Icons.chevron_right,
-          size: 18,
-          color: Color(0xFFCCCCCC),
         ),
       ),
     );

@@ -1045,10 +1045,24 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.roomName ?? 'Chat'),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              widget.roomName ?? 'Chat', 
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)
+            ),
+            if (_groupId != null)
+              const Text(
+                '群聊', 
+                style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)
+              ),
+          ],
+        ),
         backgroundColor: EbiColors.primaryBlue,
         foregroundColor: EbiColors.white,
         elevation: 0,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
