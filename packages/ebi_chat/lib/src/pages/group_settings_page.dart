@@ -7,6 +7,7 @@ import 'package:ebi_chat/src/services/group_api_service.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:ebi_chat/src/pages/user_selection_page.dart';
 import 'package:ebi_chat/src/pages/message_search_page.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
 
 /// Provider for the GroupApiService.
 final groupApiServiceProvider = Provider<GroupApiService>((ref) {
@@ -37,6 +38,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
   bool _loading = true;
   String _currentUserId = '';
   final Map<String, String?> _memberAvatars = {};
+  bool _didChange = false;
 
   @override
   void initState() {
@@ -54,6 +56,18 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         api.getGroupMembers(widget.groupId),
       ]);
       if (!mounted) return;
+      // Initialize _isPinned and _isMuted from ChatRoomsNotifier
+      // Group IDs in ChatRoom are prefixed with "group:"
+      final conversationKey = 'group:${widget.groupId}';
+      final rooms = ref.read(chatRoomsProvider).valueOrNull;
+      if (rooms != null) {
+        final room = rooms.where((r) => r.id == conversationKey).firstOrNull;
+        if (room != null) {
+          _isPinned = room.isPinned;
+          _isMuted = room.isMuted;
+        }
+      }
+
       setState(() {
         _groupInfo = results[0] as ImGroup;
         _members = results[1] as List<ImGroupMember>;
@@ -97,20 +111,42 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
     return me.first.isAdmin || me.first.isSuperAdmin;
   }
 
+  String get _currentUserName {
+    final me = _members.where(
+      (m) => m.userId.toLowerCase() == _currentUserId,
+    );
+    if (me.isEmpty) return '我';
+    return me.first.displayName;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('群设置'),
+        title: const Text(
+          '群设置',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: const Color(0xFFF2F2F6),
         foregroundColor: const Color(0xFF111111),
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         centerTitle: true,
+        leading: BackButton(
+          onPressed: () => Navigator.of(context).pop(_didChange),
+        ),
       ),
       backgroundColor: const Color(0xFFF2F2F6),
-      body: _loading
-          ? const EbiLoading(message: '加载中...')
+      body: WillPopScope(
+        onWillPop: () async {
+          Navigator.of(context).pop(_didChange);
+          return false;
+        },
+        child: _loading
+            ? const EbiLoading(message: '加载中...')
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
@@ -160,6 +196,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                 ],
               ),
             ),
+      ),
     );
   }
 
@@ -615,9 +652,53 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
             onTap: () => _editField('alias', _groupInfo?.alias ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _buildToggleRow('置顶会话', _isPinned, (v) => setState(() => _isPinned = v)),
+          _buildToggleRow('置顶会话', _isPinned, (v) async {
+            final old = _isPinned;
+            setState(() => _isPinned = v);
+            try {
+              final repo = ref.read(chatRepositoryProvider);
+              // For group conv ids, the repo expects the prefixed 'group:{groupId}'
+              // Actually, signalR chat repo takes 'group:{groupId}' natively for some, 
+              // but pin/mute endpoints from web usually take raw ID.
+              // We will pass the group ID directly if that's what backend expects, 
+              // but if backend expects prefixed, we pass prefixed.
+              // Wait, Web usually expects the `groupId` as the conversationId for groups when pinning.
+              await repo.pinConversation(widget.groupId, v);
+              // Refresh conversation list to re-order and show pin icon
+              if (mounted) {
+                ref.read(chatRoomsProvider.notifier).refresh();
+                _didChange = true;
+              }
+            } catch (e) {
+              if (mounted) {
+                setState(() => _isPinned = old);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('置顶失败: $e')),
+                );
+              }
+            }
+          }),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _buildToggleRow('消息免打扰', _isMuted, (v) => setState(() => _isMuted = v)),
+          _buildToggleRow('消息免打扰', _isMuted, (v) async {
+            final old = _isMuted;
+            setState(() => _isMuted = v);
+            try {
+              final repo = ref.read(chatRepositoryProvider);
+              await repo.muteConversation(widget.groupId, v);
+              // Refresh conversation list to show/hide mute icon
+              if (mounted) {
+                ref.read(chatRoomsProvider.notifier).refresh();
+                _didChange = true;
+              }
+            } catch (e) {
+              if (mounted) {
+                setState(() => _isMuted = old);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('设置免打扰失败: $e')),
+                );
+              }
+            }
+          }),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _buildInfoRow('设置聊天背景', '', canEdit: true, onTap: () => _showComingSoon('聊天背景')),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
@@ -805,7 +886,14 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         final api = ref.read(groupApiServiceProvider);
         final userIds = selectedUsers.map((u) => (u['id'] as String).toLowerCase()).toList();
         await api.inviteUsers(widget.groupId, userIds);
-        
+
+        // Broadcast new members invited
+        final sm = ref.read(signalRConnectionProvider);
+        if (sm.isConnected) {
+          final summary = '邀请了 ${userIds.length} 位新成员加入群聊';
+          await sm.notifyMembersInvited(widget.groupId, userIds, summary);
+        }
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('已发送入群邀请')),
@@ -925,7 +1013,16 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         await api.setNickName(widget.groupId, result);
       } else {
         await api.updateGroup(widget.groupId, {field: result});
+        // Broadcast public group info changes
+        final sm = ref.read(signalRConnectionProvider);
+        if (sm.isConnected && (field == 'name' || field == 'notice' || field == 'description')) {
+          final summary = field == 'name' ? '$_currentUserName 修改群名称为「$result」' 
+                        : field == 'notice' ? '$_currentUserName 发布了新公告' 
+                        : '$_currentUserName 修改了群描述';
+          await sm.notifyGroupUpdated(widget.groupId, field, summary);
+        }
       }
+      _didChange = true;
       _loadData();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1055,6 +1152,12 @@ class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
       final api = ref.read(groupApiServiceProvider);
       await api.removeUser(widget.groupId, member.userId);
       
+      // Broadcast user removed
+      final sm = ref.read(signalRConnectionProvider);
+      if (sm.isConnected) {
+        await sm.notifyMemberRemoved(widget.groupId, member.userId, '将 ${member.displayName} 移出群聊');
+      }
+
       setState(() {
         _localMembers.removeWhere((m) => m.userId == member.userId);
       });

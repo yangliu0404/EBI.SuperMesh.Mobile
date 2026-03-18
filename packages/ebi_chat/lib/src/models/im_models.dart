@@ -217,6 +217,18 @@ class ImLastChatMessage {
 
   bool get isGroupMessage => groupId.isNotEmpty;
 
+  bool get isPinned {
+    if (extraProperties == null) return false;
+    final val = extraProperties!['isTop'] ?? extraProperties!['isPinned'];
+    return val == true || val == 'true' || val == 1;
+  }
+
+  bool get isMuted {
+    if (extraProperties == null) return false;
+    final val = extraProperties!['isMute'] ?? extraProperties!['isMuted'] ?? extraProperties!['isNoDisturb'];
+    return val == true || val == 'true' || val == 1;
+  }
+
   factory ImLastChatMessage.fromJson(Map<String, dynamic> json) {
     return ImLastChatMessage(
       avatarUrl: _findValue(json, 'avatarUrl') as String? ?? '',

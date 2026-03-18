@@ -56,6 +56,38 @@ class ImGroup {
           : null,
     );
   }
+
+  ImGroup copyWith({
+    String? id,
+    String? name,
+    String? avatarUrl,
+    String? notice,
+    String? description,
+    String? alias,
+    String? adminUserId,
+    String? tag,
+    int? maxUserCount,
+    bool? allowAnonymous,
+    bool? allowSendMessage,
+    int? groupAcceptJoinType,
+    DateTime? creationTime,
+  }) {
+    return ImGroup(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      notice: notice ?? this.notice,
+      description: description ?? this.description,
+      alias: alias ?? this.alias,
+      adminUserId: adminUserId ?? this.adminUserId,
+      tag: tag ?? this.tag,
+      maxUserCount: maxUserCount ?? this.maxUserCount,
+      allowAnonymous: allowAnonymous ?? this.allowAnonymous,
+      allowSendMessage: allowSendMessage ?? this.allowSendMessage,
+      groupAcceptJoinType: groupAcceptJoinType ?? this.groupAcceptJoinType,
+      creationTime: creationTime ?? this.creationTime,
+    );
+  }
 }
 
 // ── Group Member ─────────────────────────────────────────────────────────

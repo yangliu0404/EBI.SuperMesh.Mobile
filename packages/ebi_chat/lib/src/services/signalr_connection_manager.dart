@@ -210,6 +210,21 @@ class SignalRConnectionManager {
     return result as String?;
   }
 
+  /// Broadcast a locally sent message back into the incoming stream so listeners
+  /// (like ChatDetailPage and ChatRoomsNotifier) can update immediately.
+  void broadcastLocalMessage(ImChatMessage message) {
+    _globalMessageController.add(message);
+    if (message.isGroupMessage) {
+      final key = 'group:${message.groupId}';
+      _conversationControllers[key]?.add(message);
+    } else {
+      _conversationControllers[message.formUserId]?.add(message);
+      if (message.toUserId != null) {
+        _conversationControllers[message.toUserId!]?.add(message);
+      }
+    }
+  }
+
   /// Join a SignalR group to receive group messages.
   Future<void> joinGroup(String groupId) async {
     _ensureConnected();
@@ -256,6 +271,45 @@ class SignalRConnectionManager {
     _ensureConnected();
     await _hubConnection!.invoke('recall', args: <Object>[message.toJson()]);
     AppLogger.debug('[SignalR] Message recalled: ${message.messageId}');
+  }
+
+  // ── Group Notification Broadcasts (Client -> Server) ──
+
+  /// Broadcast group info changes (name, notice, description, avatar)
+  Future<void> notifyGroupUpdated(String groupId, String updateType, String content) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-group-updated', args: <Object>[groupId, updateType, content]);
+    AppLogger.debug('[SignalR] notify-group-updated: $groupId, $updateType, $content');
+  }
+
+  /// Broadcast group created
+  Future<void> notifyGroupCreated(String groupId) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-group-created', args: <Object>[groupId]);
+  }
+
+  /// Broadcast role change
+  Future<void> notifyRoleChanged(String groupId, String content) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-role-changed', args: <Object>[groupId, content]);
+  }
+
+  /// Broadcast member left
+  Future<void> notifyMemberLeft(String groupId, String content) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-member-left', args: <Object>[groupId, content]);
+  }
+
+  /// Broadcast member removed
+  Future<void> notifyMemberRemoved(String groupId, String removedUserId, String content) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-member-removed', args: <Object>[groupId, removedUserId, content]);
+  }
+
+  /// Broadcast members invited
+  Future<void> notifyMembersInvited(String groupId, List<String> invitedUserIds, String content) async {
+    if (!isConnected) return;
+    await _hubConnection!.invoke('notify-members-invited', args: <Object>[groupId, invitedUserIds, content]);
   }
 
   // ── Hub handlers (Server → Client) ─────────────────────────────────────

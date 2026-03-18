@@ -98,6 +98,7 @@ extension ImChatMessageMapper on ImChatMessage {
         content: recallText,
         createdAt: _parseSendTime(),
         status: MessageStatus.sent,
+        extraProperties: extraProperties,
       );
     }
 
@@ -136,6 +137,7 @@ extension ImChatMessageMapper on ImChatMessage {
       quotedSenderName: quotedSender,
       quotedContent: quotedContent,
       quotedMessageType: quotedMsgType,
+      extraProperties: extraProperties,
     );
   }
 
@@ -223,6 +225,8 @@ extension ImLastChatMessageMapper on ImLastChatMessage {
           ? DateTime.tryParse(sendTime)
           : null,
       unreadCount: unreadCount ?? 0,
+      isPinned: isPinned,
+      isMuted: isMuted,
       isOnline: online ?? false,
       createdAt: sendTime.isNotEmpty
           ? (DateTime.tryParse(sendTime) ?? DateTime.now())

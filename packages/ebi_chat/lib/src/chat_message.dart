@@ -21,6 +21,7 @@ class ChatMessage {
   final int? mediaDuration;
   final DateTime createdAt;
   final MessageStatus status;
+  final Map<String, dynamic>? extraProperties;
 
   // ── Quoted reply fields ──
   final String? quotedMessageId;
@@ -44,6 +45,7 @@ class ChatMessage {
     this.mediaDuration,
     required this.createdAt,
     this.status = MessageStatus.sent,
+    this.extraProperties,
     this.quotedMessageId,
     this.quotedSenderName,
     this.quotedContent,
@@ -68,6 +70,7 @@ class ChatMessage {
     int? mediaDuration,
     DateTime? createdAt,
     MessageStatus? status,
+    Map<String, dynamic>? extraProperties,
     String? quotedMessageId,
     String? quotedSenderName,
     String? quotedContent,
@@ -89,6 +92,7 @@ class ChatMessage {
       mediaDuration: mediaDuration ?? this.mediaDuration,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
+      extraProperties: extraProperties ?? this.extraProperties,
       quotedMessageId: quotedMessageId ?? this.quotedMessageId,
       quotedSenderName: quotedSenderName ?? this.quotedSenderName,
       quotedContent: quotedContent ?? this.quotedContent,
@@ -115,6 +119,7 @@ class ChatMessage {
       fileExt: json['file_ext'] as String?,
       mediaDuration: json['media_duration'] as int?,
       createdAt: DateTime.parse(json['created_at'] as String),
+      extraProperties: json['extra_properties'] as Map<String, dynamic>?,
     );
   }
 
@@ -133,5 +138,6 @@ class ChatMessage {
         'file_ext': fileExt,
         'media_duration': mediaDuration,
         'created_at': createdAt.toIso8601String(),
+        if (extraProperties != null) 'extra_properties': extraProperties,
       };
 }

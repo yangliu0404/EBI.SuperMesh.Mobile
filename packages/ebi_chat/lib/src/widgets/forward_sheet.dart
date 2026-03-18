@@ -221,11 +221,13 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
       );
     }
     return ListView.builder(
+      key: const PageStorageKey('forward_recent'),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       itemCount: rooms.length,
       itemBuilder: (context, index) {
         final room = rooms[index];
         return _ConversationTile(
+          key: ValueKey('recent_${room.id}'),
           name: room.name,
           isGroup: room.isGroup,
           isSelected: false,
@@ -256,6 +258,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
       );
     }
     return ListView.builder(
+      key: const PageStorageKey('forward_users'),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       itemCount: users.length,
       itemBuilder: (context, index) {
@@ -264,6 +267,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
         final name = (user['name'] ?? user['userName'] ?? '') as String;
         final userName = (user['userName'] ?? '') as String;
         return _UserTile(
+          key: ValueKey('user_$userId'),
           name: name,
           userName: userName,
           onTap: () {
@@ -289,11 +293,13 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
       );
     }
     return ListView.builder(
+      key: const PageStorageKey('forward_groups'),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       itemCount: rooms.length,
       itemBuilder: (context, index) {
         final room = rooms[index];
         return _ConversationTile(
+          key: ValueKey('group_${room.id}'),
           name: room.name,
           isGroup: true,
           isSelected: false,
@@ -318,6 +324,7 @@ class _ConversationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ConversationTile({
+    super.key,
     required this.name,
     required this.isGroup,
     required this.isSelected,
@@ -357,6 +364,7 @@ class _UserTile extends StatelessWidget {
   final VoidCallback onTap;
 
   const _UserTile({
+    super.key,
     required this.name,
     required this.userName,
     required this.onTap,

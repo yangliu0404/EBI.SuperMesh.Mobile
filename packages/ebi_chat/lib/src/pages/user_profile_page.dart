@@ -5,6 +5,9 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/pages/user_settings_page.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
+import 'package:ebi_chat/src/widgets/forward_sheet.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
+import 'package:ebi_chat/src/models/im_models.dart';
 
 /// User profile page — DingDing exact visual match.
 class UserProfilePage extends ConsumerStatefulWidget {
@@ -316,18 +319,21 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                       ],
                     ),
                     // Action Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Text(
-                        '分享名片',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF3B82F6),
+                    GestureDetector(
+                      onTap: () => _shareUser(card),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Text(
+                          '分享名片',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF3B82F6),
+                          ),
                         ),
                       ),
                     ),
@@ -593,5 +599,53 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _shareUser(ImUserCard card) async {
+    final target = await showForwardSheet(context, ref);
+    if (target == null || !mounted) return;
+
+    try {
+      final repo = ref.read(chatRepositoryProvider);
+      final currentUserId = ref.read(authProvider).user?.id ?? '';
+      
+      final cardContent = card.displayName;
+      
+      final extraProps = <String, dynamic>{
+        'UserId': widget.userId,
+        'UserName': card.displayName,
+        if (card.avatarUrl != null) 'AvatarUrl': card.avatarUrl!,
+      };
+
+      final fwdMessage = ImChatMessage(
+        messageId: '',
+        formUserId: currentUserId,
+        formUserName: '', // backend can fill
+        toUserId: target.type == 'user' ? target.conversationKey : null,
+        groupId: target.groupId ?? '',
+        content: cardContent,
+        sendTime: DateTime.now().toUtc().toIso8601String(),
+        messageType: ImMessageType.contactCard.value,
+        source: ImMessageSourceType.user.value,
+        extraProperties: extraProps,
+      );
+      
+      await repo.sendMessage(fwdMessage);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('名片已发送给 ${target.displayName}'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('发送失败: $e')),
+        );
+      }
+    }
   }
 }

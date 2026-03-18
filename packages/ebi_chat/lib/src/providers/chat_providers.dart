@@ -95,6 +95,7 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
   final String currentUserId;
   StreamSubscription<ImChatMessage>? _messageSub;
   StreamSubscription<ImChatMessage>? _recallSub;
+  StreamSubscription<ImGroupInfoUpdatedEvent>? _groupUpdateSub;
 
   ChatRoomsNotifier({
     required this.repo,
@@ -104,6 +105,7 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     _load();
     _listenToMessages();
     _listenToRecalls();
+    _listenToGroupUpdates();
   }
 
   Future<void> _load() async {
@@ -267,6 +269,33 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     });
   }
 
+  void _listenToGroupUpdates() {
+    _groupUpdateSub = manager.groupInfoUpdatedStream.listen((event) {
+      if (!mounted) return;
+      final rooms = state.valueOrNull;
+      if (rooms == null) return;
+
+      final conversationKey = 'group:${event.groupId}';
+      final idx = rooms.indexWhere((r) => r.id == conversationKey);
+      if (idx >= 0) {
+        final room = rooms[idx];
+        // event.name could be null if only notice was updated
+        // We only care if name or avatar was updated since they are shown in ChatRoom
+        if (event.name != null && event.name != room.name || 
+            event.avatarUrl != null && event.avatarUrl != room.avatar) {
+          final updated = room.copyWith(
+            name: event.name ?? room.name,
+            avatar: event.avatarUrl ?? room.avatar,
+          );
+          final newList = List<ChatRoom>.from(rooms);
+          newList[idx] = updated;
+          state = AsyncValue.data(newList);
+          AppLogger.info('[ChatRooms] Group info UI updated for room ${room.id}');
+        }
+      }
+    });
+  }
+
   /// Clear unread count for a conversation (called when user enters chat).
   void clearUnreadCount(String conversationKey) {
     final rooms = state.valueOrNull;
@@ -284,6 +313,7 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
   void dispose() {
     _messageSub?.cancel();
     _recallSub?.cancel();
+    _groupUpdateSub?.cancel();
     super.dispose();
   }
 }

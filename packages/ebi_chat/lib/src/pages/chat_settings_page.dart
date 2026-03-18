@@ -8,6 +8,7 @@ import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:ebi_chat/src/pages/user_selection_page.dart';
 import 'package:ebi_chat/src/pages/create_group_page.dart';
 import 'package:ebi_chat/src/pages/message_search_page.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
 
 /// Chat settings page for 1-to-1 private chats (DingDing-style).
 ///
@@ -43,6 +44,17 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     try {
       final api = ref.read(groupApiServiceProvider);
       final card = await api.getUserCard(widget.otherUserId);
+
+      // Initialize _isPinned and _isMuted from ChatRoomsNotifier
+      final rooms = ref.read(chatRoomsProvider).valueOrNull;
+      if (rooms != null) {
+        final room = rooms.where((r) => r.id == widget.otherUserId).firstOrNull;
+        if (room != null) {
+          _isPinned = room.isPinned;
+          _isMuted = room.isMuted;
+        }
+      }
+
       if (!mounted) return;
       setState(() {
         _otherUser = card;
@@ -59,7 +71,13 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('聊天设置'),
+        title: const Text(
+          '聊天设置',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         backgroundColor: const Color(0xFFF2F2F6),
         foregroundColor: const Color(0xFF111111),
         elevation: 0,
@@ -300,9 +318,43 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     return _buildCard(
       child: Column(
         children: [
-          _toggleRow('置顶会话', _isPinned, (v) => setState(() => _isPinned = v)),
+          _toggleRow('置顶会话', _isPinned, (v) async {
+            final old = _isPinned;
+            setState(() => _isPinned = v);
+            try {
+              final repo = ref.read(chatRepositoryProvider);
+              await repo.pinConversation(widget.otherUserId, v);
+              if (mounted) {
+                ref.read(chatRoomsProvider.notifier).refresh();
+              }
+            } catch (e) {
+              if (mounted) {
+                setState(() => _isPinned = old);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('置顶失败: $e')),
+                );
+              }
+            }
+          }),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _toggleRow('消息免打扰', _isMuted, (v) => setState(() => _isMuted = v)),
+          _toggleRow('消息免打扰', _isMuted, (v) async {
+             final old = _isMuted;
+             setState(() => _isMuted = v);
+             try {
+                final repo = ref.read(chatRepositoryProvider);
+                await repo.muteConversation(widget.otherUserId, v);
+                if (mounted) {
+                  ref.read(chatRoomsProvider.notifier).refresh();
+                }
+             } catch (e) {
+                if (mounted) {
+                  setState(() => _isMuted = old);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('设置免打扰失败: $e')),
+                  );
+                }
+             }
+          }),
         ],
       ),
     );

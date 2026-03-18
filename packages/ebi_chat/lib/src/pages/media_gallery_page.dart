@@ -7,6 +7,7 @@ import 'package:ebi_chat/src/pages/message_search_page.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ebi_chat/src/widgets/media_action_buttons.dart';
 import 'package:ebi_chat/src/widgets/forward_sheet.dart';
+import 'package:ebi_chat/src/widgets/center_toast.dart';
 import 'package:ebi_chat/src/widgets/custom_share_sheet.dart';
 
 /// A custom page route that fades in instead of sliding from the right.
@@ -110,12 +111,7 @@ class _MediaGalleryPageState extends ConsumerState<MediaGalleryPage> {
     final target = await showForwardSheet(context, ref);
     if (target == null || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已转发给 ${target.displayName}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    showCenterToast(context, '已转发给 ${target.displayName}');
   }
 
   void _handleCustomShare() {
@@ -123,12 +119,7 @@ class _MediaGalleryPageState extends ConsumerState<MediaGalleryPage> {
       context,
       ref: ref,
       onQuickForward: (room) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已转发给 ${room.name}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        showCenterToast(context, '已转发给 ${room.name}');
       },
       actions: [
         ShareAction(

@@ -12,6 +12,7 @@ import 'package:ebi_chat/src/widgets/audio_preview_widget.dart';
 import 'package:ebi_chat/src/widgets/text_preview_widget.dart';
 import 'package:ebi_chat/src/widgets/media_action_buttons.dart';
 import 'package:ebi_chat/src/widgets/forward_sheet.dart';
+import 'package:ebi_chat/src/widgets/center_toast.dart';
 import 'package:ebi_chat/src/widgets/custom_share_sheet.dart';
 
 
@@ -179,12 +180,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
     final target = await showForwardSheet(context, ref);
     if (target == null || !mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('已转发给 ${target.displayName}'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    showCenterToast(context, '已转发给 ${target.displayName}');
     // TODO: Call repo.sendMessage() to actually forward the file message.
   }
 
@@ -204,12 +200,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       context,
       ref: ref,
       onQuickForward: (room) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已转发给 ${room.name}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        showCenterToast(context, '已转发给 ${room.name}');
         // TODO: Call repo.sendMessage() to forward.
       },
       actions: [

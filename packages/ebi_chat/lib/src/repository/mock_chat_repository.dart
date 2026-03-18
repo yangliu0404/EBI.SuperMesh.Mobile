@@ -319,4 +319,14 @@ class MockChatRepository implements ChatRepository {
   Future<void> recallMessage(ImChatMessage message) async {
     await Future.delayed(const Duration(milliseconds: 100));
   }
+  
+  @override
+  Future<void> pinConversation(String conversationId, bool pinned) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  @override
+  Future<void> muteConversation(String conversationId, bool muted) async {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
 }

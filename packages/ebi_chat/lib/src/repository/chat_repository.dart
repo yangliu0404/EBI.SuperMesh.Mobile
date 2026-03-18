@@ -40,6 +40,12 @@ abstract class ChatRepository {
   /// Mark a group conversation as read up to a specific message.
   Future<void> readGroupConversation(String groupId, String lastReadMessageId);
 
+  /// Pin or unpin a conversation (user/group).
+  Future<void> pinConversation(String conversationId, bool isPinned);
+
+  /// Mute or unmute a conversation (user/group).
+  Future<void> muteConversation(String conversationId, bool isMuted);
+
   /// Stream of incoming messages for a conversation.
   Stream<ChatMessage> messageStream(String conversationId);
 

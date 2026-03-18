@@ -10,6 +10,7 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/models/im_models.dart';
+import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/models/upload_state.dart';
 import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/repository/chat_repository.dart';
@@ -23,6 +24,7 @@ import 'package:ebi_chat/src/widgets/typing_indicator.dart';
 import 'package:ebi_chat/src/widgets/upload_progress_bubble.dart';
 import 'package:ebi_chat/src/widgets/message_context_menu.dart';
 import 'package:ebi_chat/src/widgets/forward_sheet.dart';
+import 'package:ebi_chat/src/widgets/center_toast.dart';
 import 'package:ebi_chat/src/pages/file_preview_page.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
@@ -83,6 +85,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   late final String _currentUserId;
   late final String _currentUserName;
 
+  ImGroup? _groupInfo;
+
   // ── Reply state ────────────────────────────────────────────────────────
   ChatMessage? _replyingTo;
 
@@ -131,6 +135,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     _listenToStream();
     _listenToReadReceipts();
     _listenToRecalls();
+    _listenToGroupUpdates();
     // Optimistic local clear (like web's chatStore.clearUnreadCount).
     Future.microtask(() {
       if (mounted) _roomsNotifier.clearUnreadCount(widget.roomId);
@@ -183,6 +188,38 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           }
         }
       });
+    });
+  }
+
+  void _listenToGroupUpdates() {
+    if (_groupId == null) return;
+    _manager.groupInfoUpdatedStream.listen((event) {
+      if (!mounted || event.groupId != _groupId) return;
+      
+      if (event.notice != null &&
+          _groupInfo != null &&
+          event.notice != _groupInfo!.notice) {
+        // Notice changed, log system message
+        final sysMsg = ChatMessage(
+          id: 'sys-${DateTime.now().millisecondsSinceEpoch}',
+          roomId: widget.roomId,
+          senderId: 'system',
+          senderName: 'System',
+          type: MessageType.system,
+          content: '群公告已更新',
+          createdAt: DateTime.now(),
+        );
+
+        setState(() {
+          _messages.insert(0, sysMsg);
+          _groupInfo = _groupInfo!.copyWith(
+            notice: event.notice,
+            name: event.name ?? _groupInfo!.name,
+            description: event.description ?? _groupInfo!.description,
+            avatarUrl: event.avatarUrl ?? _groupInfo!.avatarUrl,
+          );
+        });
+      }
     });
   }
 
@@ -751,12 +788,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('已转发给 ${target.displayName}'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        showCenterToast(context, '已转发给 ${target.displayName}');
       }
     } catch (e) {
       if (mounted) {
@@ -1069,16 +1101,31 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () {
+            onPressed: () async {
               if (_groupId != null) {
-                Navigator.of(context).push(
+                final didChange = await Navigator.of(context).push<bool>(
                   MaterialPageRoute(
                     builder: (_) => GroupSettingsPage(
                       groupId: _groupId!,
-                      groupName: widget.roomName,
+                      groupName: _groupInfo?.name ?? widget.roomName,
                     ),
                   ),
                 );
+                
+                if (didChange == true && mounted) {
+                  // Reload group info so the app bar title updates
+                  try {
+                    final api = ref.read(groupApiServiceProvider);
+                    final updatedGroup = await api.getGroup(_groupId!);
+                    if (mounted) {
+                      setState(() {
+                        _groupInfo = updatedGroup;
+                      });
+                    }
+                  } catch (e) {
+                    AppLogger.error('Failed to reload group info after settings edit', e);
+                  }
+                }
               } else if (_otherUserId != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1471,7 +1518,7 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    '发送给',
+                    '转发给',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey.shade600,
@@ -1616,50 +1663,46 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
               // ── Actions: Cancel + Send ──
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                padding: EdgeInsets.fromLTRB(16, 4, 16, 12 + MediaQuery.of(context).padding.bottom),
                 child: Row(
                   children: [
                     Expanded(
-                      child: SizedBox(
-                        height: 44,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(null),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.grey.shade300),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(null),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            '取消',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: EbiColors.textPrimary,
-                            ),
+                        ),
+                        child: const Text(
+                          '取消',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: EbiColors.textPrimary,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: SizedBox(
-                        height: 44,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(_textController.text.trim());
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF07C160),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(_textController.text.trim());
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF07C160),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            '发送',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          '转发',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),

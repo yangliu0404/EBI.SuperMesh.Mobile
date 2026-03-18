@@ -7,6 +7,7 @@ import 'package:ebi_chat/src/widgets/file_message_widget.dart';
 import 'package:ebi_chat/src/widgets/video_message_widget.dart';
 import 'package:ebi_chat/src/widgets/audio_message_widget.dart';
 import 'package:ebi_chat/src/widgets/message_context_menu.dart';
+import 'package:ebi_chat/src/pages/user_profile_page.dart';
 
 /// Chat message bubble — left-aligned for others, right-aligned blue for current user.
 class MessageBubble extends StatelessWidget {
@@ -149,7 +150,7 @@ class MessageBubble extends StatelessWidget {
                         },
                         child: _buildQuoteBlock(),
                       ),
-                    _buildContent(),
+                    _buildContent(context),
                     const SizedBox(height: 4),
                     _buildTimeAndStatus(),
                   ],
@@ -211,7 +212,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     switch (message.type) {
       case MessageType.text:
         return Text(
@@ -233,12 +234,12 @@ class MessageBubble extends StatelessWidget {
       case MessageType.system:
         return const SizedBox.shrink();
       case MessageType.contactCard:
-        return _buildContactCardContent();
+        return _buildContactCardContent(context);
     }
   }
 
-  Widget _buildContactCardContent() {
-    return Container(
+  Widget _buildContactCardContent(BuildContext context) {
+    final card = Container(
       width: 200,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -280,6 +281,21 @@ class MessageBubble extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    return GestureDetector(
+      onTap: () {
+        final userId = message.extraProperties?['UserId'] as String? ?? 
+                       message.extraProperties?['userId'] as String?;
+        if (userId != null && userId.isNotEmpty) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => UserProfilePage(userId: userId),
+            ),
+          );
+        }
+      },
+      child: card,
     );
   }
 

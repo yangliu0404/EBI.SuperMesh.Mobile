@@ -17,6 +17,8 @@ class ChatRoom {
   final String? lastSenderName;
   final DateTime? lastMessageAt;
   final int unreadCount;
+  final bool isPinned;
+  final bool isMuted;
   final bool isOnline;
   final DateTime createdAt;
 
@@ -35,6 +37,8 @@ class ChatRoom {
     this.lastSenderName,
     this.lastMessageAt,
     this.unreadCount = 0,
+    this.isPinned = false,
+    this.isMuted = false,
     this.isOnline = false,
     required this.createdAt,
   });
@@ -58,6 +62,8 @@ class ChatRoom {
     String? lastSenderName,
     DateTime? lastMessageAt,
     int? unreadCount,
+    bool? isPinned,
+    bool? isMuted,
     bool? isOnline,
     DateTime? createdAt,
   }) {
@@ -76,6 +82,8 @@ class ChatRoom {
       lastSenderName: lastSenderName ?? this.lastSenderName,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       unreadCount: unreadCount ?? this.unreadCount,
+      isPinned: isPinned ?? this.isPinned,
+      isMuted: isMuted ?? this.isMuted,
       isOnline: isOnline ?? this.isOnline,
       createdAt: createdAt ?? this.createdAt,
     );
@@ -102,6 +110,8 @@ class ChatRoom {
           ? DateTime.parse(json['last_message_at'] as String)
           : null,
       unreadCount: json['unread_count'] as int? ?? 0,
+      isPinned: json['is_pinned'] as bool? ?? false,
+      isMuted: json['is_muted'] as bool? ?? false,
       isOnline: json['is_online'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
@@ -122,6 +132,8 @@ class ChatRoom {
         'last_sender_name': lastSenderName,
         'last_message_at': lastMessageAt?.toIso8601String(),
         'unread_count': unreadCount,
+        'is_pinned': isPinned,
+        'is_muted': isMuted,
         'is_online': isOnline,
         'created_at': createdAt.toIso8601String(),
       };

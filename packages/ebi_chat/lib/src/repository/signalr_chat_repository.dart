@@ -237,7 +237,14 @@ class SignalRChatRepository implements ChatRepository {
   Future<String> sendMessage(ImChatMessage message) async {
     if (_connectionManager.isConnected) {
       final messageId = await _connectionManager.sendMessage(message);
-      return messageId ?? message.messageId;
+      final finalMsgId = messageId ?? message.messageId;
+      _connectionManager.broadcastLocalMessage(
+        message.copyWith(
+          messageId: finalMsgId,
+          state: ImMessageState.send.value,
+        ),
+      );
+      return finalMsgId;
     }
 
     // Fallback: send via REST API when SignalR is unavailable.
@@ -249,7 +256,14 @@ class SignalRChatRepository implements ChatRepository {
       final result = ImChatMessageSendResult.fromJson(
         response.data as Map<String, dynamic>,
       );
-      return result.messageId;
+      final finalMsgId = result.messageId;
+      _connectionManager.broadcastLocalMessage(
+        message.copyWith(
+          messageId: finalMsgId,
+          state: ImMessageState.send.value,
+        ),
+      );
+      return finalMsgId;
     } catch (e, st) {
       AppLogger.error('[SignalRChatRepo] sendMessage REST failed', e, st);
       rethrow;
@@ -305,6 +319,40 @@ class SignalRChatRepository implements ChatRepository {
     if (_connectionManager.isConnected) {
       await _connectionManager.readGroupConversation(
           groupId, lastReadMessageId);
+    }
+  }
+
+  // ── ChatRepository: settings (pin/mute) ─────────────────────────────────
+
+  @override
+  Future<void> pinConversation(String conversationId, bool isPinned) async {
+    try {
+      await _apiClient.put(
+        '/api/im/conversation-settings/pin',
+        data: {
+          'conversationId': conversationId,
+          'value': isPinned,
+        },
+      );
+    } catch (e, st) {
+      AppLogger.error('[SignalRChatRepo] pinConversation failed', e, st);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> muteConversation(String conversationId, bool isMuted) async {
+    try {
+      await _apiClient.put(
+        '/api/im/conversation-settings/mute',
+        data: {
+          'conversationId': conversationId,
+          'value': isMuted,
+        },
+      );
+    } catch (e, st) {
+      AppLogger.error('[SignalRChatRepo] muteConversation failed', e, st);
+      rethrow;
     }
   }
 
