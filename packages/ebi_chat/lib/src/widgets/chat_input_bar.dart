@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'hold_to_talk_button.dart';
 
 /// Input bar with text field, attachment buttons, and emoji picker.
 class ChatInputBar extends StatefulWidget {
@@ -9,6 +10,7 @@ class ChatInputBar extends StatefulWidget {
   final VoidCallback? onPickPhotos;
   final VoidCallback? onPickFile;
   final VoidCallback? onPickVideo;
+  final void Function(String path, int durationSeconds)? onSendVoice;
 
   /// Called when the user starts/stops typing (for typing indicator).
   /// Only meaningful in 1-to-1 chats.
@@ -24,20 +26,22 @@ class ChatInputBar extends StatefulWidget {
     this.onPickPhotos,
     this.onPickFile,
     this.onPickVideo,
+    this.onSendVoice,
     this.onTypingChanged,
     this.replyWidget,
   });
 
   @override
-  State<ChatInputBar> createState() => _ChatInputBarState();
+  ChatInputBarState createState() => ChatInputBarState();
 }
 
-class _ChatInputBarState extends State<ChatInputBar> {
+class ChatInputBarState extends State<ChatInputBar> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   bool _hasText = false;
   bool _showAttachments = false;
   bool _showEmoji = false;
+  bool _isVoiceMode = false;
 
   // Typing indicator debounce.
   bool _isTyping = false;
@@ -107,6 +111,17 @@ class _ChatInputBarState extends State<ChatInputBar> {
     _typingTimer?.cancel();
   }
 
+  /// Closes the attachment/emoji panels and removes keyboard focus.
+  void closePanels() {
+    if (_showAttachments || _showEmoji || _focusNode.hasFocus) {
+      setState(() {
+        _showAttachments = false;
+        _showEmoji = false;
+      });
+      _focusNode.unfocus();
+    }
+  }
+
   void _insertEmoji(String emoji) {
     final text = _controller.text;
     final selection = _controller.selection;
@@ -141,74 +156,136 @@ class _ChatInputBarState extends State<ChatInputBar> {
             ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              IconButton(
-                icon: Icon(
-                  _showAttachments ? Icons.close : Icons.add_circle_outline,
-                  color: EbiColors.primaryBlue,
+              SizedBox(
+                height: 44,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isVoiceMode = !_isVoiceMode;
+                      if (_isVoiceMode) {
+                        _showAttachments = false;
+                        _showEmoji = false;
+                        _focusNode.unfocus();
+                      } else {
+                        _focusNode.requestFocus();
+                      }
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                    child: Icon(
+                      _isVoiceMode ? Icons.keyboard_alt_outlined : Icons.settings_voice_outlined,
+                      color: EbiColors.textHint,
+                      size: 28,
+                    ),
+                  ),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _showAttachments = !_showAttachments;
-                    if (_showAttachments) _showEmoji = false;
-                  });
-                },
               ),
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    onChanged: _onTextChanged,
-                    onSubmitted: (_) => _send(),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: _isVoiceMode
+                      ? HoldToTalkButton(
+                          onVoiceRecorded: (path, duration) async {
+                            widget.onSendVoice?.call(path, duration);
+                          },
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F6F9),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            focusNode: _focusNode,
+                            onChanged: _onTextChanged,
+                            onSubmitted: (_) => _send(),
+                            onTap: () {
+                              if (_showEmoji) {
+                                setState(() => _showEmoji = false);
+                              }
+                            },
+                            textInputAction: TextInputAction.send,
+                            decoration: const InputDecoration(
+                              hintText: 'Type a message...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                            maxLines: 4,
+                            minLines: 1,
+                          ),
+                        ),
+                ),
+              ),
+              if (!_isVoiceMode)
+                SizedBox(
+                  height: 44,
+                  child: GestureDetector(
                     onTap: () {
-                      if (_showEmoji) {
-                        setState(() => _showEmoji = false);
-                      }
+                      setState(() {
+                        _showEmoji = !_showEmoji;
+                        if (_showEmoji) {
+                          _showAttachments = false;
+                          _focusNode.unfocus();
+                        } else {
+                          _focusNode.requestFocus();
+                        }
+                      });
                     },
-                    textInputAction: TextInputAction.send,
-                    decoration: const InputDecoration(
-                      hintText: 'Type a message...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Icon(
+                        _showEmoji ? Icons.keyboard : Icons.emoji_emotions_outlined,
+                        color: _showEmoji ? EbiColors.primaryBlue : EbiColors.textHint,
+                        size: 28,
                       ),
                     ),
-                    style: const TextStyle(fontSize: 14),
-                    maxLines: 4,
-                    minLines: 1,
                   ),
                 ),
-              ),
-              IconButton(
-                icon: Icon(
-                  _showEmoji ? Icons.keyboard : Icons.emoji_emotions_outlined,
-                  color: _showEmoji
-                      ? EbiColors.primaryBlue
-                      : EbiColors.textHint,
+              if (!_isVoiceMode && !_hasText)
+                SizedBox(
+                  height: 44,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _showAttachments = !_showAttachments;
+                        if (_showAttachments) {
+                          _showEmoji = false;
+                          _focusNode.unfocus();
+                        }
+                      });
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Icon(
+                        _showAttachments ? Icons.close : Icons.add_circle_outline,
+                        color: _showAttachments ? EbiColors.textPrimary : EbiColors.textHint,
+                        size: 28,
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _showEmoji = !_showEmoji;
-                    if (_showEmoji) {
-                      _showAttachments = false;
-                      _focusNode.unfocus();
-                    }
-                  });
-                },
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.send_rounded,
-                  color: _hasText ? EbiColors.primaryBlue : EbiColors.textHint,
+              if (!_isVoiceMode && _hasText)
+                SizedBox(
+                  height: 44,
+                  child: GestureDetector(
+                    onTap: _send,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Icon(
+                        Icons.send_rounded,
+                        color: EbiColors.primaryBlue,
+                        size: 28,
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: _hasText ? _send : null,
-              ),
             ],
           ),
         ),
@@ -247,31 +324,114 @@ class _ChatInputBarState extends State<ChatInputBar> {
   }
 
   Widget _buildAttachmentBar() {
+    final List<Widget> items = [
+      _attachmentOption(Icons.photo_library, '相册', () {
+        widget.onPickPhotos?.call();
+        setState(() => _showAttachments = false);
+      }),
+      _attachmentOption(Icons.camera_alt, '拍摄', () {
+        widget.onPickCamera?.call();
+        setState(() => _showAttachments = false);
+      }),
+      _attachmentOption(Icons.videocam, '视频', () {
+        widget.onPickVideo?.call();
+        setState(() => _showAttachments = false);
+      }),
+      _attachmentOption(Icons.attach_file, '文件', () {
+        widget.onPickFile?.call();
+        setState(() => _showAttachments = false);
+      }),
+      _attachmentOption(Icons.phone_in_talk, '语音通话', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for voice call
+      }),
+      _attachmentOption(Icons.video_call, '视频通话', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for video call
+      }),
+      _attachmentOption(Icons.groups, '会议', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for meeting
+      }),
+      _attachmentOption(Icons.location_on, '位置', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for location
+      }),
+      _attachmentOption(Icons.person, '名片', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for contact card
+      }),
+      _attachmentOption(Icons.bolt, '快捷回复', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for quick reply
+      }),
+      _attachmentOption(Icons.bookmark, '收藏', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for favorites
+      }),
+      _attachmentOption(Icons.monetization_on, '转账', () {
+        setState(() => _showAttachments = false);
+        // TODO: Placeholder for monetary transfer
+      }),
+    ];
+
+    // Split items into pages of 8 (2 rows * 4 columns)
+    const int itemsPerPage = 8;
+    final int pageCount = (items.length / itemsPerPage).ceil();
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      height: 210, // Fixed height for the panel
+      padding: const EdgeInsets.only(top: 16, bottom: 4),
       decoration: const BoxDecoration(
-        color: EbiColors.white,
+        color: Color(0xFFF7F8FA),
         border: Border(top: BorderSide(color: EbiColors.divider)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      child: Column(
         children: [
-          _attachmentOption(Icons.camera_alt, 'Camera', () {
-            widget.onPickCamera?.call();
-            setState(() => _showAttachments = false);
-          }),
-          _attachmentOption(Icons.photo_library, 'Photos', () {
-            widget.onPickPhotos?.call();
-            setState(() => _showAttachments = false);
-          }),
-          _attachmentOption(Icons.attach_file, 'File', () {
-            widget.onPickFile?.call();
-            setState(() => _showAttachments = false);
-          }),
-          _attachmentOption(Icons.videocam, 'Video', () {
-            widget.onPickVideo?.call();
-            setState(() => _showAttachments = false);
-          }),
+          Expanded(
+            child: PageView.builder(
+              itemCount: pageCount,
+              itemBuilder: (context, pageIndex) {
+                final int startIndex = pageIndex * itemsPerPage;
+                final int endIndex = (startIndex + itemsPerPage < items.length)
+                    ? startIndex + itemsPerPage
+                    : items.length;
+                final List<Widget> pageItems = items.sublist(startIndex, endIndex);
+
+                return GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  physics: const NeverScrollableScrollPhysics(), // Scroll is handled by PageView
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 0.95, // Adjust ratio to fit icon and text tighter
+                  ),
+                  itemCount: pageItems.length,
+                  itemBuilder: (context, index) {
+                    return pageItems[index];
+                  },
+                );
+              },
+            ),
+          ),
+          // Pagination indicator (simplified, could use a package like smooth_page_indicator if imported)
+          if (pageCount > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                pageCount,
+                (index) => Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: index == 0 ? EbiColors.primaryBlue : Colors.grey.withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -284,13 +444,24 @@ class _ChatInputBarState extends State<ChatInputBar> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: EbiColors.primaryBlue.withValues(alpha: 0.1),
+              color: EbiColors.white,
               borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            child: Icon(icon, color: EbiColors.primaryBlue, size: 24),
+            child: Icon(
+              icon,
+              color: const Color(0xFF333333),
+              size: 28,
+            ),
           ),
           const SizedBox(height: 6),
           Text(label, style: EbiTextStyles.labelSmall),

@@ -263,7 +263,12 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: EbiColors.primaryBlue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(12),
+                        topRight: const Radius.circular(12),
+                        bottomLeft: Radius.circular(widget.isMe ? 12 : 4),
+                        bottomRight: Radius.circular(widget.isMe ? 4 : 12),
+                      ),
                     ),
                     child: const Text(
                       'Retry',

@@ -105,21 +105,22 @@ class MessageBubble extends StatelessWidget {
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.7,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: isMe ? EbiColors.primaryBlue : EbiColors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(16),
                     topRight: const Radius.circular(16),
-                    bottomLeft: Radius.circular(isMe ? 16 : 4),
-                    bottomRight: Radius.circular(isMe ? 4 : 16),
+                    bottomLeft: Radius.circular(isMe ? 16 : 6),
+                    bottomRight: Radius.circular(isMe ? 6 : 16),
                   ),
                   boxShadow: [
-                    BoxShadow(
-                      color: EbiColors.darkNavy.withValues(alpha: 0.06),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
+                    if (!isMe)
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
                   ],
                 ),
                 child: Column(
@@ -171,14 +172,14 @@ class MessageBubble extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? EbiColors.white.withValues(alpha: 0.15)
-            : EbiColors.darkNavy.withValues(alpha: 0.06),
+            : const Color(0xFFF5F6F9),
         borderRadius: BorderRadius.circular(6),
         border: Border(
           left: BorderSide(
             color: isMe
                 ? EbiColors.white.withValues(alpha: 0.5)
-                : EbiColors.primaryBlue.withValues(alpha: 0.5),
-            width: 2,
+                : const Color(0xFFD0D5DD),
+            width: 3,
           ),
         ),
       ),
@@ -200,9 +201,10 @@ class MessageBubble extends StatelessWidget {
             message.quotedContent!,
             style: TextStyle(
               fontSize: 12,
+              height: 1.4,
               color: isMe
-                  ? EbiColors.white.withValues(alpha: 0.7)
-                  : EbiColors.textSecondary,
+                  ? EbiColors.white.withValues(alpha: 0.8)
+                  : const Color(0xFF666666),
             ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -218,9 +220,9 @@ class MessageBubble extends StatelessWidget {
         return Text(
           message.content,
           style: TextStyle(
-            fontSize: 14,
-            color: isMe ? EbiColors.white : EbiColors.textPrimary,
-            height: 1.4,
+            fontSize: 15, // Slightly larger base text
+            color: isMe ? EbiColors.white : const Color(0xFF111111),
+            height: 1.45, // Better line height for readability
           ),
         );
       case MessageType.image:

@@ -283,7 +283,12 @@ class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: Colors.black.withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(widget.isMe ? 16 : 6),
+            bottomRight: Radius.circular(widget.isMe ? 6 : 16),
+          ),
         ),
         child: Text(
           sizeText,

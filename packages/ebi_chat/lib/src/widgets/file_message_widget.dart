@@ -121,45 +121,65 @@ class FileMessageWidget extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => _onTap(context),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(getFileIcon(ext), color: iconColor, size: 20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isMe ? EbiColors.primaryBlue : EbiColors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(isMe ? 16 : 6),
+            bottomRight: Radius.circular(isMe ? 6 : 16),
           ),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.fileName ?? 'File',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: fgColor,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (sizeText.isNotEmpty)
+          boxShadow: [
+            if (!isMe)
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(getFileIcon(ext), color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    sizeText,
+                    message.fileName ?? 'File',
                     style: TextStyle(
-                      fontSize: 11,
-                      color: fgColor.withValues(alpha: 0.7),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: fgColor,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-              ],
+                  if (sizeText.isNotEmpty)
+                    Text(
+                      sizeText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: fgColor.withValues(alpha: 0.7),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

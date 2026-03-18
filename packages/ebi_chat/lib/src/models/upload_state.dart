@@ -13,6 +13,7 @@ class PendingUpload {
   final double progress;
   final String? error;
   final String? ossPath;
+  final int? duration;
 
   const PendingUpload({
     required this.localId,
@@ -23,6 +24,7 @@ class PendingUpload {
     this.progress = 0.0,
     this.error,
     this.ossPath,
+    this.duration,
   });
 
   PendingUpload copyWith({
@@ -30,6 +32,7 @@ class PendingUpload {
     double? progress,
     String? error,
     String? ossPath,
+    int? duration,
   }) {
     return PendingUpload(
       localId: localId,
@@ -40,6 +43,7 @@ class PendingUpload {
       progress: progress ?? this.progress,
       error: error ?? this.error,
       ossPath: ossPath ?? this.ossPath,
+      duration: duration ?? this.duration,
     );
   }
 }

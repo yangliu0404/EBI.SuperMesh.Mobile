@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -114,6 +115,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   bool get _isDirect => _otherUserId != null;
 
   GlobalKey _keyForMessage(String messageId) {
+    if (messageId.isEmpty) {
+      return GlobalKey(); // Prevent key duplication if ID is empty
+    }
     return _messageKeys.putIfAbsent(messageId, () => GlobalKey());
   }
 
@@ -443,6 +447,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     final repo = ref.read(chatRepositoryProvider);
     _streamSub = repo.messageStream(widget.roomId).listen((message) {
       if (!mounted) return;
+      // Dedup: skip if this message ID already exists (e.g. provisional echo).
+      if (_messages.any((m) => m.id == message.id)) return;
       setState(() {
         if (_isAtBottom) {
           _messages.add(message);
@@ -520,9 +526,12 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       _unreadDividerMessageId = firstNewId;
       _flushPending();
     });
-    _scrollToDivider();
+    _scrollController.jumpTo(0);
   }
 
+  // Key to access ChatInputBar state for closing panels.
+  final GlobalKey<ChatInputBarState> _inputBarKey = GlobalKey<ChatInputBarState>();
+  
   // ── Send text ──────────────────────────────────────────────────────────
 
   Future<void> _sendMessage(String text) async {
@@ -908,6 +917,23 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     );
   }
 
+  Future<void> _sendVoice(String localPath, int durationSeconds) async {
+    final file = File(localPath);
+    int? fileSize;
+    if (await file.exists()) {
+      fileSize = await file.length();
+    }
+    _uploadAndSend(
+      localPath: localPath,
+      fileName: localPath.split('/').last,
+      messageType: MessageType.audio,
+      subDir: 'voice',
+      imMessageType: ImMessageType.voice,
+      fileSize: fileSize,
+      duration: durationSeconds,
+    );
+  }
+
   // ── Upload & send pipeline ─────────────────────────────────────────────
 
   Future<void> _uploadAndSend({
@@ -917,6 +943,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     required String subDir,
     required ImMessageType imMessageType,
     int? fileSize,
+    int? duration,
   }) async {
     final localId = _uuid.v4();
     final pending = PendingUpload(
@@ -961,6 +988,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         if (mimeType != null) 'mimeType': mimeType,
         if (fileSize != null) 'fileSize': fileSize,
         'fileExt': _extFromName(fileName) ?? '',
+        if (duration != null) 'duration': duration,
       };
 
       final imMessage = ImChatMessage(
@@ -992,6 +1020,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           fileSize: fileSize,
           mimeType: mimeType,
           fileExt: _extFromName(fileName),
+          mediaDuration: duration,
           createdAt: DateTime.now(),
           status: MessageStatus.sent,
         );
@@ -1151,11 +1180,13 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           if (_isDirect && _otherUserId != null)
             TypingIndicator(conversationId: _otherUserId!),
           ChatInputBar(
+            key: _inputBarKey,
             onSendText: _sendMessage,
             onPickCamera: _pickCamera,
             onPickPhotos: _pickPhotos,
             onPickFile: _pickFile,
             onPickVideo: _pickVideo,
+            onSendVoice: _sendVoice,
             onTypingChanged: _isDirect ? _onTypingChanged : null,
             replyWidget: _replyingTo != null ? _buildReplyBar() : null,
           ),
@@ -1179,9 +1210,14 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
     return Stack(
       children: [
-        ListView.builder(
-          controller: _scrollController,
-          reverse: true,
+        GestureDetector(
+          onTap: () {
+            _inputBarKey.currentState?.closePanels();
+          },
+          behavior: HitTestBehavior.opaque,
+          child: ListView.builder(
+            controller: _scrollController,
+            reverse: true,
           padding: const EdgeInsets.only(bottom: 8),
           itemCount: totalCount + (_isLoadingMore ? 1 : 0),
           findChildIndexCallback: (key) {
@@ -1305,6 +1341,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
               children: widgets,
             );
           },
+        ),
         ),
 
         // ↑ N 条新消息

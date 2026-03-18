@@ -4,6 +4,7 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/models/upload_state.dart';
 import 'package:ebi_chat/src/widgets/file_message_widget.dart';
+import 'package:ebi_chat/src/widgets/audio_message_widget.dart';
 
 /// Displays a sending-in-progress bubble for a file being uploaded.
 class UploadProgressBubble extends StatelessWidget {
@@ -45,7 +46,7 @@ class UploadProgressBubble extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildContent(),
+                  _buildContent(context),
                   const SizedBox(height: 6),
                   _buildProgress(),
                 ],
@@ -58,7 +59,7 @@ class UploadProgressBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BuildContext context) {
     if (upload.messageType == MessageType.image) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
@@ -73,6 +74,33 @@ class UploadProgressBubble extends StatelessWidget {
               child: const Icon(Icons.image, color: EbiColors.white, size: 32),
             ),
           ),
+        ),
+      );
+    }
+
+    if (upload.messageType == MessageType.audio) {
+      final duration = upload.duration ?? 0;
+      final double calculatedWidth = 60.0 + (duration * 3.0);
+      final double bubbleWidth = calculatedWidth.clamp(60.0, 220.0);
+      final durationText = duration > 0 ? '$duration"' : '';
+
+      return Container(
+        width: bubbleWidth,
+        margin: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (durationText.isNotEmpty) ...[
+              Text(durationText, style: const TextStyle(color: EbiColors.white, fontSize: 13)),
+              const SizedBox(width: 8),
+            ],
+            const VoiceWaveIcon(
+              step: 3,
+              color: EbiColors.white,
+              isMe: true,
+            ),
+          ],
         ),
       );
     }
