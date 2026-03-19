@@ -11,11 +11,15 @@ import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
+import 'package:ebi_chat/src/pages/outgoing_call_page.dart';
 
 /// Chat message bubble — left-aligned for others, right-aligned blue for current user.
 class MessageBubble extends ConsumerWidget {
   final ChatMessage message;
   final bool isMe;
+
+  /// The conversation name (used as target name for call card tap).
+  final String? roomName;
 
   /// Called when a context menu action is selected.
   final void Function(MessageAction action, ChatMessage message)? onAction;
@@ -30,6 +34,7 @@ class MessageBubble extends ConsumerWidget {
     super.key,
     required this.message,
     required this.isMe,
+    this.roomName,
     this.onAction,
     this.onQuoteTap,
     this.onAvatarTap,
@@ -282,9 +287,8 @@ class MessageBubble extends ConsumerWidget {
         // Quick dial
         final targetUserId = isMe ? message.roomId : message.senderId;
         final targetUserName = isMe
-            ? '[对方]'
-            : message
-                  .senderName; // Placeholder if single chat title isn't easily accessible here
+            ? (roomName ?? '未知用户')
+            : message.senderName;
 
         ref
             .read(callStateProvider.notifier)
@@ -293,6 +297,9 @@ class MessageBubble extends ConsumerWidget {
               targetUserName: targetUserName,
               callType: isVideo ? CallType.video : CallType.voice,
             );
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const OutgoingCallPage()),
+        );
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),

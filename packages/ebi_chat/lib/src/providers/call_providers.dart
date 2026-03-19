@@ -648,10 +648,12 @@ final callStateProvider =
     StateNotifierProvider<CallStateNotifier, CallState>((ref) {
   final callApi = ref.read(callApiServiceProvider);
   final signaling = ref.read(callSignalingProvider);
-  final chatRepo = ref.read(chatRepositoryProvider);
+  final chatRepo = ref.watch(chatRepositoryProvider);
   final liveKit = ref.read(liveKitServiceProvider);
-  final currentUserId = ref.read(currentUserIdProvider);
-  // User name comes from auth provider
+  final currentUserId = ref.watch(currentUserIdProvider);
+  // User name: read once — we must NOT watch authProvider here because that
+  // would rebuild (and destroy) the CallStateNotifier every time auth state
+  // emits, killing any active call.
   final currentUser = ref.read(authProvider).user;
 
   return CallStateNotifier(

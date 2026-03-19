@@ -1406,6 +1406,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       child: MessageBubble(
                         message: msg,
                         isMe: msg.senderId == userId,
+                        roomName: widget.roomName,
                         onAction: _onMessageAction,
                         onQuoteTap: _scrollToQuotedMessage,
                         onAvatarTap: (senderId) {

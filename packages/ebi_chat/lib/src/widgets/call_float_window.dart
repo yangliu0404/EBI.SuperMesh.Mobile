@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
-import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/pages/call_page.dart';
 
 /// A draggable floating window that appears when a call is minimized.
