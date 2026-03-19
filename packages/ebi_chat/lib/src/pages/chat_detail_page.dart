@@ -30,6 +30,9 @@ import 'package:ebi_chat/src/pages/file_preview_page.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
 import 'package:ebi_chat/src/pages/chat_settings_page.dart';
+import 'package:ebi_chat/src/models/call_models.dart';
+import 'package:ebi_chat/src/providers/call_providers.dart';
+import 'package:ebi_chat/src/pages/outgoing_call_page.dart';
 
 const _uuid = Uuid();
 
@@ -199,7 +202,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     if (_groupId == null) return;
     _manager.groupInfoUpdatedStream.listen((event) {
       if (!mounted || event.groupId != _groupId) return;
-      
+
       if (event.notice != null &&
           _groupInfo != null &&
           event.notice != _groupInfo!.notice) {
@@ -235,11 +238,14 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
       // The recall event sends a NEW system message. The real recalled message ID
       // may be in extraProperties.MessageId (Web pattern: useChatBell.ts:344).
-      final extraMessageId = imMsg.extraProperties?['MessageId'] as String?
-          ?? imMsg.extraProperties?['messageId'] as String?;
+      final extraMessageId =
+          imMsg.extraProperties?['MessageId'] as String? ??
+          imMsg.extraProperties?['messageId'] as String?;
       final recalledId = (extraMessageId ?? imMsg.messageId).toLowerCase();
       setState(() {
-        final idx = _messages.indexWhere((m) => m.id.toLowerCase() == recalledId);
+        final idx = _messages.indexWhere(
+          (m) => m.id.toLowerCase() == recalledId,
+        );
         if (idx >= 0) {
           final oldMsg = _messages[idx];
           final isSelf = oldMsg.senderId == _currentUserId;
@@ -298,10 +304,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     });
   }
 
-  void _scrollToKey(
-    GlobalKey key, {
-    bool animate = true,
-  }) async {
+  void _scrollToKey(GlobalKey key, {bool animate = true}) async {
     for (int attempt = 0; attempt < 3; attempt++) {
       if (!mounted) return;
       final targetCtx = key.currentContext;
@@ -322,8 +325,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       if (key == _dividerKey && _unreadDividerMessageId != null) {
         msgIdx = _messages.indexWhere((m) => m.id == _unreadDividerMessageId);
       } else {
-        final entry =
-            _messageKeys.entries.where((e) => e.value == key).firstOrNull;
+        final entry = _messageKeys.entries
+            .where((e) => e.value == key)
+            .firstOrNull;
         if (entry != null) {
           msgIdx = _messages.indexWhere((m) => m.id == entry.key);
         }
@@ -342,10 +346,12 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             curve: Curves.easeOutCubic,
           );
         } else {
-          _scrollController.jumpTo(estimatedOffset.clamp(
-            0.0,
-            _scrollController.position.maxScrollExtent,
-          ));
+          _scrollController.jumpTo(
+            estimatedOffset.clamp(
+              0.0,
+              _scrollController.position.maxScrollExtent,
+            ),
+          );
           await Future.delayed(const Duration(milliseconds: 50));
         }
       } else {
@@ -376,10 +382,21 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
 
   Future<void> _loadMessages() async {
     final List<ChatMessage> messages;
-    if (_groupId != null) {
-      messages = await _repo.getGroupMessages(_groupId!, maxResultCount: _pageSize);
-    } else {
-      messages = await _repo.getUserMessages(widget.roomId, maxResultCount: _pageSize);
+    try {
+      if (_groupId != null) {
+        messages = await _repo.getGroupMessages(
+          _groupId!,
+          maxResultCount: _pageSize,
+        );
+      } else {
+        messages = await _repo.getUserMessages(
+          widget.roomId,
+          maxResultCount: _pageSize,
+        );
+      }
+    } catch (e, st) {
+      debugPrint('[ChatDetail] _loadMessages FAILED: $e\n$st');
+      return;
     }
     if (mounted) {
       setState(() {
@@ -530,8 +547,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   }
 
   // Key to access ChatInputBar state for closing panels.
-  final GlobalKey<ChatInputBarState> _inputBarKey = GlobalKey<ChatInputBarState>();
-  
+  final GlobalKey<ChatInputBarState> _inputBarKey =
+      GlobalKey<ChatInputBarState>();
+
   // ── Send text ──────────────────────────────────────────────────────────
 
   Future<void> _sendMessage(String text) async {
@@ -549,6 +567,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.notifier.value,
         MessageType.contactCard => ImMessageType.contactCard.value,
+        MessageType.voiceCall => ImMessageType.voiceCall.value,
+        MessageType.videoCall => ImMessageType.videoCall.value,
       };
       extraProps = {
         'quotedMessageId': _replyingTo!.id,
@@ -640,6 +660,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.text.value,
         MessageType.contactCard => ImMessageType.contactCard.value,
+        MessageType.voiceCall => ImMessageType.voiceCall.value,
+        MessageType.videoCall => ImMessageType.videoCall.value,
       };
 
       final imMessage = ImChatMessage(
@@ -673,9 +695,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('撤回失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('撤回失败: $e')));
       }
     }
   }
@@ -713,9 +735,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('删除失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('删除失败: $e')));
       }
     }
   }
@@ -749,6 +771,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.file => ImMessageType.file.value,
         MessageType.system => ImMessageType.text.value,
         MessageType.contactCard => ImMessageType.contactCard.value,
+        MessageType.voiceCall => ImMessageType.voiceCall.value,
+        MessageType.videoCall => ImMessageType.videoCall.value,
       };
 
       final forwardContent = message.fileUrl ?? message.content;
@@ -801,9 +825,9 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('转发失败: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('转发失败: $e')));
       }
     }
   }
@@ -903,6 +927,48 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       imMessageType: ImMessageType.file,
       fileSize: file.size,
     );
+  }
+
+  void _startVoiceCall() {
+    if (!_isDirect || _otherUserId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('群聊暂不支持语音通话')));
+      }
+      return;
+    }
+    ref
+        .read(callStateProvider.notifier)
+        .startCall(
+          targetUserId: _otherUserId!,
+          targetUserName: widget.roomName ?? '未知用户',
+          callType: CallType.voice,
+        );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OutgoingCallPage()));
+  }
+
+  void _startVideoCall() {
+    if (!_isDirect || _otherUserId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('群聊暂不支持视频通话')));
+      }
+      return;
+    }
+    ref
+        .read(callStateProvider.notifier)
+        .startCall(
+          targetUserId: _otherUserId!,
+          targetUserName: widget.roomName ?? '未知用户',
+          callType: CallType.video,
+        );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const OutgoingCallPage()));
   }
 
   Future<void> _pickVideo() async {
@@ -1049,8 +1115,12 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     }
   }
 
-  void _updatePendingStatus(String localId, UploadStatus status,
-      {String? ossPath, String? error}) {
+  void _updatePendingStatus(
+    String localId,
+    UploadStatus status, {
+    String? ossPath,
+    String? error,
+  }) {
     setState(() {
       final idx = _pendingUploads.indexWhere((u) => u.localId == localId);
       if (idx >= 0) {
@@ -1092,14 +1162,20 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     if (_groupId != null) {
       final lastMsgId = _messages.isNotEmpty ? _messages.last.id : null;
       if (lastMsgId != null) {
-        _repo.readGroupConversation(_groupId!, lastMsgId).then((_) {
-          _roomsNotifier.refresh();
-        }).catchError((_) {});
+        _repo
+            .readGroupConversation(_groupId!, lastMsgId)
+            .then((_) {
+              _roomsNotifier.refresh();
+            })
+            .catchError((_) {});
       }
     } else if (_otherUserId != null) {
-      _repo.markConversationAsRead(_otherUserId!).then((_) {
-        _roomsNotifier.refresh();
-      }).catchError((_) {});
+      _repo
+          .markConversationAsRead(_otherUserId!)
+          .then((_) {
+            _roomsNotifier.refresh();
+          })
+          .catchError((_) {});
     }
   }
 
@@ -1113,13 +1189,17 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              widget.roomName ?? 'Chat', 
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)
+              widget.roomName ?? 'Chat',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
             ),
             if (_groupId != null)
               const Text(
-                '群聊', 
-                style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal)
+                '群聊',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.normal,
+                ),
               ),
           ],
         ),
@@ -1140,7 +1220,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                     ),
                   ),
                 );
-                
+
                 if (didChange == true && mounted) {
                   // Reload group info so the app bar title updates
                   try {
@@ -1152,7 +1232,10 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
                       });
                     }
                   } catch (e) {
-                    AppLogger.error('Failed to reload group info after settings edit', e);
+                    AppLogger.error(
+                      'Failed to reload group info after settings edit',
+                      e,
+                    );
                   }
                 }
               } else if (_otherUserId != null) {
@@ -1186,6 +1269,8 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             onPickPhotos: _pickPhotos,
             onPickFile: _pickFile,
             onPickVideo: _pickVideo,
+            onVoiceCall: _startVoiceCall,
+            onVideoCall: _startVideoCall,
             onSendVoice: _sendVoice,
             onTypingChanged: _isDirect ? _onTypingChanged : null,
             replyWidget: _replyingTo != null ? _buildReplyBar() : null,
@@ -1218,130 +1303,131 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
           child: ListView.builder(
             controller: _scrollController,
             reverse: true,
-          padding: const EdgeInsets.only(bottom: 8),
-          itemCount: totalCount + (_isLoadingMore ? 1 : 0),
-          findChildIndexCallback: (key) {
-            if (key is ValueKey<String>) {
-              final idx = _messages.indexWhere((m) => m.id == key.value);
-              if (idx >= 0) return totalCount - 1 - idx;
-            }
-            return null;
-          },
-          itemBuilder: (context, index) {
-            // Loading indicator at the top (last index in reverse list).
-            if (index == totalCount) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-              );
-            }
-
-            // Pending uploads appear at the bottom (index 0..N-1 in reverse).
-            if (index < _pendingUploads.length) {
-              final uploadIdx = _pendingUploads.length - 1 - index;
-              final upload = _pendingUploads[uploadIdx];
-              return UploadProgressBubble(
-                key: ValueKey('upload-${upload.localId}'),
-                upload: upload,
-                onRetry: upload.status == UploadStatus.failed
-                    ? () {
-                        // Remove failed upload and retry.
-                        setState(() => _pendingUploads.removeAt(uploadIdx));
-                        _uploadAndSend(
-                          localPath: upload.localPath,
-                          fileName: upload.fileName,
-                          messageType: upload.messageType,
-                          subDir: _subDirForType(upload.messageType),
-                          imMessageType: _imTypeForType(upload.messageType),
-                        );
-                      }
-                    : null,
-              );
-            }
-
-            final msgIndex = messageCount - 1 - (index - _pendingUploads.length);
-            final msg = _messages[msgIndex];
-            final msgKey = _keyForMessage(msg.id);
-            final widgets = <Widget>[];
-
-            // ── "以下为新消息" divider ──
-            if (_unreadDividerMessageId != null &&
-                msg.id == _unreadDividerMessageId) {
-              widgets.add(_UnreadDivider(key: _dividerKey));
-            }
-
-            // ── Date separator ──
-            if (msgIndex == 0) {
-              widgets.add(ChatDateSeparator(date: msg.createdAt));
-            } else {
-              final prevMsg = _messages[msgIndex - 1];
-              final msgDate = DateTime(
-                msg.createdAt.year,
-                msg.createdAt.month,
-                msg.createdAt.day,
-              );
-              final prevDate = DateTime(
-                prevMsg.createdAt.year,
-                prevMsg.createdAt.month,
-                prevMsg.createdAt.day,
-              );
-              if (msgDate != prevDate) {
-                widgets.add(ChatDateSeparator(date: msg.createdAt));
+            padding: const EdgeInsets.only(bottom: 8),
+            itemCount: totalCount + (_isLoadingMore ? 1 : 0),
+            findChildIndexCallback: (key) {
+              if (key is ValueKey<String>) {
+                final idx = _messages.indexWhere((m) => m.id == key.value);
+                if (idx >= 0) return totalCount - 1 - idx;
               }
-            }
-
-            // ── Message bubble ──
-            if (msg.type == MessageType.system) {
-              widgets.add(
-                KeyedSubtree(
-                  key: msgKey,
-                  child: SystemMessageWidget(message: msg),
-                ),
-              );
-            } else {
-              final isHighlighted = _highlightedMessageId == msg.id;
-              widgets.add(
-                KeyedSubtree(
-                  key: msgKey,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 400),
-                    decoration: BoxDecoration(
-                      color: isHighlighted
-                          ? EbiColors.primaryBlue.withValues(alpha: 0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: MessageBubble(
-                      message: msg,
-                      isMe: msg.senderId == userId,
-                      onAction: _onMessageAction,
-                      onQuoteTap: _scrollToQuotedMessage,
-                      onAvatarTap: (senderId) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => UserProfilePage(userId: senderId),
-                          ),
-                        );
-                      },
+              return null;
+            },
+            itemBuilder: (context, index) {
+              // Loading indicator at the top (last index in reverse list).
+              if (index == totalCount) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            return Column(
-              key: ValueKey(msg.id),
-              mainAxisSize: MainAxisSize.min,
-              children: widgets,
-            );
-          },
-        ),
+              // Pending uploads appear at the bottom (index 0..N-1 in reverse).
+              if (index < _pendingUploads.length) {
+                final uploadIdx = _pendingUploads.length - 1 - index;
+                final upload = _pendingUploads[uploadIdx];
+                return UploadProgressBubble(
+                  key: ValueKey('upload-${upload.localId}'),
+                  upload: upload,
+                  onRetry: upload.status == UploadStatus.failed
+                      ? () {
+                          // Remove failed upload and retry.
+                          setState(() => _pendingUploads.removeAt(uploadIdx));
+                          _uploadAndSend(
+                            localPath: upload.localPath,
+                            fileName: upload.fileName,
+                            messageType: upload.messageType,
+                            subDir: _subDirForType(upload.messageType),
+                            imMessageType: _imTypeForType(upload.messageType),
+                          );
+                        }
+                      : null,
+                );
+              }
+
+              final msgIndex =
+                  messageCount - 1 - (index - _pendingUploads.length);
+              final msg = _messages[msgIndex];
+              final msgKey = _keyForMessage(msg.id);
+              final widgets = <Widget>[];
+
+              // ── "以下为新消息" divider ──
+              if (_unreadDividerMessageId != null &&
+                  msg.id == _unreadDividerMessageId) {
+                widgets.add(_UnreadDivider(key: _dividerKey));
+              }
+
+              // ── Date separator ──
+              if (msgIndex == 0) {
+                widgets.add(ChatDateSeparator(date: msg.createdAt));
+              } else {
+                final prevMsg = _messages[msgIndex - 1];
+                final msgDate = DateTime(
+                  msg.createdAt.year,
+                  msg.createdAt.month,
+                  msg.createdAt.day,
+                );
+                final prevDate = DateTime(
+                  prevMsg.createdAt.year,
+                  prevMsg.createdAt.month,
+                  prevMsg.createdAt.day,
+                );
+                if (msgDate != prevDate) {
+                  widgets.add(ChatDateSeparator(date: msg.createdAt));
+                }
+              }
+
+              // ── Message bubble ──
+              if (msg.type == MessageType.system) {
+                widgets.add(
+                  KeyedSubtree(
+                    key: msgKey,
+                    child: SystemMessageWidget(message: msg),
+                  ),
+                );
+              } else {
+                final isHighlighted = _highlightedMessageId == msg.id;
+                widgets.add(
+                  KeyedSubtree(
+                    key: msgKey,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 400),
+                      decoration: BoxDecoration(
+                        color: isHighlighted
+                            ? EbiColors.primaryBlue.withValues(alpha: 0.12)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: MessageBubble(
+                        message: msg,
+                        isMe: msg.senderId == userId,
+                        onAction: _onMessageAction,
+                        onQuoteTap: _scrollToQuotedMessage,
+                        onAvatarTap: (senderId) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => UserProfilePage(userId: senderId),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                key: ValueKey(msg.id),
+                mainAxisSize: MainAxisSize.min,
+                children: widgets,
+              );
+            },
+          ),
         ),
 
         // ↑ N 条新消息
@@ -1493,10 +1579,7 @@ class _ForwardConfirmSheet extends StatefulWidget {
   final ChatMessage message;
   final String targetName;
 
-  const _ForwardConfirmSheet({
-    required this.message,
-    required this.targetName,
-  });
+  const _ForwardConfirmSheet({required this.message, required this.targetName});
 
   @override
   State<_ForwardConfirmSheet> createState() => _ForwardConfirmSheetState();
@@ -1508,9 +1591,30 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
   // Common emojis for quick insert.
   static const _quickEmojis = [
-    '😀', '😂', '🤣', '😍', '🥰', '😘', '😊', '🤗',
-    '🤔', '😏', '😢', '😭', '😤', '🥺', '👍', '👏',
-    '🎉', '❤️', '🔥', '💯', '✅', '👌', '🙏', '💪',
+    '😀',
+    '😂',
+    '🤣',
+    '😍',
+    '🥰',
+    '😘',
+    '😊',
+    '🤗',
+    '🤔',
+    '😏',
+    '😢',
+    '😭',
+    '😤',
+    '🥺',
+    '👍',
+    '👏',
+    '🎉',
+    '❤️',
+    '🔥',
+    '💯',
+    '✅',
+    '👌',
+    '🙏',
+    '💪',
   ];
 
   @override
@@ -1551,15 +1655,15 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
               // ── Header: 发送给 ──
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     '转发给',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ),
               ),
@@ -1595,7 +1699,11 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 22),
+                    Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey.shade400,
+                      size: 22,
+                    ),
                   ],
                 ),
               ),
@@ -1605,7 +1713,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
               // ── Message preview ──
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: _buildPreview(),
               ),
 
@@ -1613,7 +1724,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
               // ── Text input with emoji toggle ──
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -1665,11 +1779,12 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                   height: 160,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 8,
-                      mainAxisSpacing: 4,
-                      crossAxisSpacing: 4,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 8,
+                          mainAxisSpacing: 4,
+                          crossAxisSpacing: 4,
+                        ),
                     itemCount: _quickEmojis.length,
                     itemBuilder: (_, index) {
                       return GestureDetector(
@@ -1683,7 +1798,8 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                           );
                           _textController.text = newText;
                           _textController.selection = TextSelection.collapsed(
-                            offset: (selection.start.clamp(0, text.length)) +
+                            offset:
+                                (selection.start.clamp(0, text.length)) +
                                 _quickEmojis[index].length,
                           );
                         },
@@ -1700,7 +1816,12 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
 
               // ── Actions: Cancel + Send ──
               Padding(
-                padding: EdgeInsets.fromLTRB(16, 4, 16, 12 + MediaQuery.of(context).padding.bottom),
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  4,
+                  16,
+                  12 + MediaQuery.of(context).padding.bottom,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -1726,7 +1847,9 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.of(context).pop(_textController.text.trim());
+                          Navigator.of(
+                            context,
+                          ).pop(_textController.text.trim());
                         },
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1739,7 +1862,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                         ),
                         child: const Text(
                           '转发',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -1757,6 +1883,8 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
     final msg = widget.message;
     switch (msg.type) {
       case MessageType.text:
+      case MessageType.voiceCall:
+      case MessageType.videoCall:
         return Row(
           children: [
             Expanded(
@@ -1764,11 +1892,17 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 msg.content,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14, color: EbiColors.textPrimary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: EbiColors.textPrimary,
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            Text('详情', style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue)),
+            Text(
+              '详情',
+              style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue),
+            ),
           ],
         );
 
@@ -1783,9 +1917,14 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 height: 48,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  width: 48, height: 48,
+                  width: 48,
+                  height: 48,
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.image, color: EbiColors.textHint, size: 24),
+                  child: const Icon(
+                    Icons.image,
+                    color: EbiColors.textHint,
+                    size: 24,
+                  ),
                 ),
               ),
             ),
@@ -1796,7 +1935,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 style: TextStyle(fontSize: 14, color: EbiColors.textSecondary),
               ),
             ),
-            Text('详情', style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue)),
+            Text(
+              '详情',
+              style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue),
+            ),
           ],
         );
 
@@ -1804,12 +1946,17 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
         return Row(
           children: [
             Container(
-              width: 48, height: 48,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.play_circle_fill, size: 28, color: EbiColors.primaryBlue),
+              child: const Icon(
+                Icons.play_circle_fill,
+                size: 28,
+                color: EbiColors.primaryBlue,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1817,7 +1964,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 msg.fileName ?? '[视频]',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 14, color: EbiColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: EbiColors.textSecondary,
+                ),
               ),
             ),
             GestureDetector(
@@ -1843,7 +1993,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                   );
                 }
               },
-              child: Text('详情', style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue)),
+              child: Text(
+                '详情',
+                style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue),
+              ),
             ),
           ],
         );
@@ -1852,12 +2005,17 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
         return Row(
           children: [
             Container(
-              width: 40, height: 40,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: EbiColors.primaryBlue.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: const Icon(Icons.insert_drive_file, size: 22, color: EbiColors.primaryBlue),
+              child: const Icon(
+                Icons.insert_drive_file,
+                size: 22,
+                color: EbiColors.primaryBlue,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1869,12 +2027,18 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                     msg.fileName ?? '[文件]',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   if (msg.fileSize != null)
                     Text(
                       _formatBytes(msg.fileSize!),
-                      style: const TextStyle(fontSize: 11, color: EbiColors.textHint),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: EbiColors.textHint,
+                      ),
                     ),
                 ],
               ),
@@ -1892,7 +2056,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                   );
                 }
               },
-              child: Text('预览', style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue)),
+              child: Text(
+                '预览',
+                style: TextStyle(fontSize: 13, color: EbiColors.primaryBlue),
+              ),
             ),
           ],
         );
@@ -1902,7 +2069,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
           children: [
             Icon(Icons.mic, size: 20, color: EbiColors.primaryBlue),
             SizedBox(width: 8),
-            Text('[语音消息]', style: TextStyle(fontSize: 13, color: EbiColors.textSecondary)),
+            Text(
+              '[语音消息]',
+              style: TextStyle(fontSize: 13, color: EbiColors.textSecondary),
+            ),
           ],
         );
 
@@ -1916,12 +2086,15 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 msg.content,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: EbiColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: EbiColors.textSecondary,
+                ),
               ),
             ),
           ],
         );
-        
+
       case MessageType.contactCard:
         return Row(
           children: [
@@ -1932,7 +2105,10 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
                 '[个人名片] ${msg.content}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: EbiColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: EbiColors.textSecondary,
+                ),
               ),
             ),
           ],

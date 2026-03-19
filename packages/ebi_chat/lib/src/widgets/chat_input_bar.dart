@@ -10,6 +10,8 @@ class ChatInputBar extends StatefulWidget {
   final VoidCallback? onPickPhotos;
   final VoidCallback? onPickFile;
   final VoidCallback? onPickVideo;
+  final VoidCallback? onVoiceCall;
+  final VoidCallback? onVideoCall;
   final void Function(String path, int durationSeconds)? onSendVoice;
 
   /// Called when the user starts/stops typing (for typing indicator).
@@ -26,6 +28,8 @@ class ChatInputBar extends StatefulWidget {
     this.onPickPhotos,
     this.onPickFile,
     this.onPickVideo,
+    this.onVoiceCall,
+    this.onVideoCall,
     this.onSendVoice,
     this.onTypingChanged,
     this.replyWidget,
@@ -343,11 +347,11 @@ class ChatInputBarState extends State<ChatInputBar> {
       }),
       _attachmentOption(Icons.phone_in_talk, '语音通话', () {
         setState(() => _showAttachments = false);
-        // TODO: Placeholder for voice call
+        widget.onVoiceCall?.call();
       }),
       _attachmentOption(Icons.video_call, '视频通话', () {
         setState(() => _showAttachments = false);
-        // TODO: Placeholder for video call
+        widget.onVideoCall?.call();
       }),
       _attachmentOption(Icons.groups, '会议', () {
         setState(() => _showAttachments = false);

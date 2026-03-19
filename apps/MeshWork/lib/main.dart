@@ -5,7 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_core/ebi_core.dart';
+import 'package:ebi_chat/ebi_chat.dart';
 import 'package:mesh_work/src/routing/app_router.dart';
+
+/// Global navigator key shared between GoRouter and CallFloatWindow.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   // Allow self-signed certificates for dev server (10.1.1.8).
@@ -41,7 +45,7 @@ class _MeshWorkAppState extends ConsumerState<MeshWorkApp> {
   @override
   void initState() {
     super.initState();
-    _router = createAppRouter();
+    _router = createAppRouter(navigatorKey: rootNavigatorKey);
   }
 
   @override
@@ -61,6 +65,15 @@ class _MeshWorkAppState extends ConsumerState<MeshWorkApp> {
       theme: EbiTheme.meshWork(),
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            child ?? const SizedBox.shrink(),
+            // Call floating window (shows only when call is minimized)
+            CallFloatWindow(navigatorKey: rootNavigatorKey),
+          ],
+        );
+      },
     );
   }
 }

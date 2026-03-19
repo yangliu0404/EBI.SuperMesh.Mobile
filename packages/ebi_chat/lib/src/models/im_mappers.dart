@@ -29,11 +29,13 @@ MessageType mapImMessageType(int backendType) {
     case ImMessageType.image:
       return MessageType.image;
     case ImMessageType.video:
-    case ImMessageType.videoCall:
       return MessageType.video;
+    case ImMessageType.videoCall:
+      return MessageType.videoCall;
     case ImMessageType.voice:
-    case ImMessageType.voiceCall:
       return MessageType.audio;
+    case ImMessageType.voiceCall:
+      return MessageType.voiceCall;
     case ImMessageType.file:
       return MessageType.file;
     case ImMessageType.notifier:
@@ -52,9 +54,7 @@ extension ImChatMessageMapper on ImChatMessage {
     // For 1-to-1, use the other party's ID (case-insensitive comparison).
     final currentLower = currentUserId.toLowerCase();
     final fromLower = formUserId.toLowerCase();
-    return fromLower == currentLower
-        ? (toUserId ?? formUserId)
-        : formUserId;
+    return fromLower == currentLower ? (toUserId ?? formUserId) : formUserId;
   }
 
   ChatMessage toUiMessage(String currentUserId) {
@@ -64,9 +64,16 @@ extension ImChatMessageMapper on ImChatMessage {
     final isSystemSource =
         ImMessageSourceType.fromValue(source) == ImMessageSourceType.system;
 
-    // If it's explicitly recalled OR it's a system message with empty content
+    // Check if message type is explicitly a call type so we don't treat empty calls as recalled.
+    final msgType = ImMessageType.fromValue(messageType);
+    final isCall =
+        msgType == ImMessageType.videoCall ||
+        msgType == ImMessageType.voiceCall;
+
+    // If it's explicitly recalled OR it's a system message with empty content (and NOT a call)
     // OR it's a system message with recall text in content (backend pattern).
-    if (isRecalled || (isSystemSource && content.trim().isEmpty) ||
+    if (isRecalled ||
+        (isSystemSource && content.trim().isEmpty && !isCall) ||
         content.contains('撤回了一条消息')) {
       final isSelf = formUserId.toLowerCase() == currentUserId.toLowerCase();
       // Determine display name for the recaller:
@@ -78,12 +85,16 @@ extension ImChatMessageMapper on ImChatMessage {
       if (isSelf) {
         recallText = '你撤回了一条消息';
       } else {
-        final extraName = extraProperties?['FormUserName'] as String?
-            ?? extraProperties?['formUserName'] as String?;
-        final candidateName = formUserName.isNotEmpty && formUserName.toLowerCase() != 'system'
+        final extraName =
+            extraProperties?['FormUserName'] as String? ??
+            extraProperties?['formUserName'] as String?;
+        final candidateName =
+            formUserName.isNotEmpty && formUserName.toLowerCase() != 'system'
             ? formUserName
             : extraName;
-        if (candidateName != null && candidateName.isNotEmpty && candidateName.toLowerCase() != 'system') {
+        if (candidateName != null &&
+            candidateName.isNotEmpty &&
+            candidateName.toLowerCase() != 'system') {
           recallText = '$candidateName撤回了一条消息';
         } else {
           recallText = '撤回了一条消息';
@@ -112,18 +123,23 @@ extension ImChatMessageMapper on ImChatMessage {
     final quotedTypeRaw = extraProperties?['quotedMessageType'];
     MessageType? quotedMsgType;
     if (quotedTypeRaw != null) {
-      final intVal = quotedTypeRaw is int ? quotedTypeRaw : int.tryParse('$quotedTypeRaw');
+      final intVal = quotedTypeRaw is int
+          ? quotedTypeRaw
+          : int.tryParse('$quotedTypeRaw');
       if (intVal != null) {
         quotedMsgType = mapImMessageType(intVal);
       }
     }
 
+    final mappedType = mapImMessageType(messageType);
+    final isCallType = mappedType == MessageType.voiceCall || mappedType == MessageType.videoCall;
+    
     return ChatMessage(
       id: messageId,
       roomId: conversationId(currentUserId),
       senderId: formUserId,
       senderName: formUserName,
-      type: isSystem ? MessageType.system : mapImMessageType(messageType),
+      type: (isSystem && !isCallType) ? MessageType.system : mappedType,
       content: content,
       fileUrl: _extractFileUrl(),
       fileName: _extractFileName(),
@@ -153,17 +169,18 @@ extension ImChatMessageMapper on ImChatMessage {
   }
 
   String? _extractFileName() {
-    return extraProperties?['fileName']?.toString() 
-        ?? extraProperties?['FileName']?.toString()
-        ?? extraProperties?['name']?.toString()
-        ?? extraProperties?['Name']?.toString();
+    return extraProperties?['fileName']?.toString() ??
+        extraProperties?['FileName']?.toString() ??
+        extraProperties?['name']?.toString() ??
+        extraProperties?['Name']?.toString();
   }
 
   /// Extract file extension with fallback chain:
   /// extraProperties['fileExt'] → fileName → content (ossPath).
   String? _extractFileExt() {
-    final ext = extraProperties?['fileExt']?.toString() 
-             ?? extraProperties?['FileExt']?.toString();
+    final ext =
+        extraProperties?['fileExt']?.toString() ??
+        extraProperties?['FileExt']?.toString();
     if (ext != null && ext.isNotEmpty) return ext;
     // Fallback: derive from fileName.
     final name = _extractFileName();
@@ -209,6 +226,7 @@ extension ImLastChatMessageMapper on ImLastChatMessage {
         ? 'group:$groupId'
         : (fromLower == currentLower ? toUserId : formUserId);
 
+
     final isRecallMessage = _isRecalled();
 
     return ChatRoom(
@@ -221,9 +239,7 @@ extension ImLastChatMessageMapper on ImLastChatMessage {
       lastMessageId: messageId,
       // Clear lastSenderName for recalled messages so tile doesn't prepend "system:"
       lastSenderName: isRecallMessage ? '' : formUserName,
-      lastMessageAt: sendTime.isNotEmpty
-          ? DateTime.tryParse(sendTime)
-          : null,
+      lastMessageAt: sendTime.isNotEmpty ? DateTime.tryParse(sendTime) : null,
       unreadCount: unreadCount ?? 0,
       isPinned: isPinned,
       isMuted: isMuted,
@@ -236,6 +252,12 @@ extension ImLastChatMessageMapper on ImLastChatMessage {
 
   /// Check if this is a recalled message.
   bool _isRecalled() {
+    final msgType = ImMessageType.fromValue(messageType);
+    if (msgType == ImMessageType.videoCall ||
+        msgType == ImMessageType.voiceCall) {
+      return false; // calls are never recalled messages
+    }
+
     final isSystemSource =
         ImMessageSourceType.fromValue(source) == ImMessageSourceType.system;
     // Recalled if: system source with empty content, OR content contains recall text

@@ -4,6 +4,8 @@ import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/widgets/chat_room_tile.dart';
 import 'package:ebi_chat/src/widgets/notification_section.dart';
+import 'package:ebi_chat/src/providers/call_providers.dart';
+import 'package:ebi_chat/src/pages/incoming_call_page.dart';
 
 /// Message center page — notification aggregation + conversation list.
 class ChatRoomListPage extends ConsumerWidget {
@@ -15,6 +17,18 @@ class ChatRoomListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final roomsAsync = ref.watch(chatRoomsProvider);
+
+    // Global listener for incoming calls
+    ref.listen<CallState>(callStateProvider, (prev, next) {
+      if (next.hasIncomingCall && (prev == null || !prev.hasIncomingCall)) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => const IncomingCallPage(),
+            fullscreenDialog: true,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       appBar: const EbiAppBar(title: 'Messages', showBack: false),

@@ -4,10 +4,13 @@ import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/pages/user_settings_page.dart';
+import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/widgets/forward_sheet.dart';
-import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/models/im_models.dart';
+import 'package:ebi_chat/src/models/call_models.dart';
+import 'package:ebi_chat/src/providers/call_providers.dart';
+import 'package:ebi_chat/src/pages/outgoing_call_page.dart';
 
 /// User profile page — DingDing exact visual match.
 class UserProfilePage extends ConsumerStatefulWidget {
@@ -361,7 +364,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                     offset: const Offset(0, 4),
                   ),
                 ],
-                image: card.avatarUrl != null
+                image: (card.avatarUrl != null && card.avatarUrl!.isNotEmpty)
                     ? DecorationImage(
                         image: NetworkImage(card.avatarUrl!),
                         fit: BoxFit.cover,
@@ -369,7 +372,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                     : null,
               ),
               alignment: Alignment.center,
-              child: card.avatarUrl == null
+              child: (card.avatarUrl == null || card.avatarUrl!.isEmpty)
                   ? Text(
                       card.displayName.isNotEmpty
                           ? card.displayName.characters.first
@@ -510,8 +513,13 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                 icon: Icons.call_outlined,
                 label: '语音',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('语音通话即将上线')),
+                  ref.read(callStateProvider.notifier).startCall(
+                    targetUserId: widget.userId,
+                    targetUserName: card.displayName,
+                    callType: CallType.voice,
+                  );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const OutgoingCallPage()),
                   );
                 },
               ),
@@ -524,8 +532,13 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                 icon: Icons.videocam_outlined,
                 label: '视频',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('视频通话即将上线')),
+                  ref.read(callStateProvider.notifier).startCall(
+                    targetUserId: widget.userId,
+                    targetUserName: card.displayName,
+                    callType: CallType.video,
+                  );
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const OutgoingCallPage()),
                   );
                 },
               ),

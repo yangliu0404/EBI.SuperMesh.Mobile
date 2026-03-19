@@ -56,7 +56,7 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
   if (kUseSignalR) {
     final connectionManager = ref.read(signalRConnectionProvider);
     final apiClient = ref.read(apiClientProvider);
-    final currentUserId = ref.read(currentUserIdProvider);
+    final currentUserId = ref.watch(currentUserIdProvider);
     final repo = SignalRChatRepository(
       connectionManager: connectionManager,
       apiClient: apiClient,
@@ -79,9 +79,9 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
 /// globalMessageStream to increment unreadCount + update lastMessage.
 final chatRoomsProvider =
     StateNotifierProvider<ChatRoomsNotifier, AsyncValue<List<ChatRoom>>>((ref) {
-  final repo = ref.read(chatRepositoryProvider);
+  final repo = ref.watch(chatRepositoryProvider);
   final manager = ref.read(signalRConnectionProvider);
-  final currentUserId = ref.read(currentUserIdProvider);
+  final currentUserId = ref.watch(currentUserIdProvider);
   return ChatRoomsNotifier(
     repo: repo,
     manager: manager,

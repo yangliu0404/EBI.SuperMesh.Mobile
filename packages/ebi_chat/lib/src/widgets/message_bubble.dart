@@ -8,9 +8,12 @@ import 'package:ebi_chat/src/widgets/video_message_widget.dart';
 import 'package:ebi_chat/src/widgets/audio_message_widget.dart';
 import 'package:ebi_chat/src/widgets/message_context_menu.dart';
 import 'package:ebi_chat/src/pages/user_profile_page.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_chat/src/providers/call_providers.dart';
+import 'package:ebi_chat/src/models/call_models.dart';
 
 /// Chat message bubble — left-aligned for others, right-aligned blue for current user.
-class MessageBubble extends StatelessWidget {
+class MessageBubble extends ConsumerWidget {
   final ChatMessage message;
   final bool isMe;
 
@@ -80,12 +83,13 @@ class MessageBubble extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
-        mainAxisAlignment:
-            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: isMe
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -105,7 +109,10 @@ class MessageBubble extends StatelessWidget {
                 constraints: BoxConstraints(
                   maxWidth: MediaQuery.of(context).size.width * 0.7,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: isMe ? EbiColors.primaryBlue : EbiColors.white,
                   borderRadius: BorderRadius.only(
@@ -151,7 +158,7 @@ class MessageBubble extends StatelessWidget {
                         },
                         child: _buildQuoteBlock(),
                       ),
-                    _buildContent(context),
+                    _buildContent(context, ref),
                     const SizedBox(height: 4),
                     _buildTimeAndStatus(),
                   ],
@@ -214,7 +221,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, WidgetRef ref) {
     switch (message.type) {
       case MessageType.text:
         return Text(
@@ -237,7 +244,74 @@ class MessageBubble extends StatelessWidget {
         return const SizedBox.shrink();
       case MessageType.contactCard:
         return _buildContactCardContent(context);
+      case MessageType.voiceCall:
+      case MessageType.videoCall:
+        return _buildCallCardContent(context, ref);
     }
+  }
+
+  Widget _buildCallCardContent(BuildContext context, WidgetRef ref) {
+    final isVideo = message.type == MessageType.videoCall;
+    final icon = isVideo ? Icons.videocam : Icons.phone;
+    final color = isMe ? EbiColors.white : EbiColors.primaryBlue;
+
+    // Parse duration or status
+    String statusText = '未知通话';
+    int? duration = message.mediaDuration;
+    if (duration == null || duration == 0) {
+      final extDur = message.extraProperties?['mediaDuration'];
+      if (extDur != null) {
+        duration = extDur is int ? extDur : int.tryParse('$extDur');
+      }
+    }
+
+    if (duration != null && duration > 0) {
+      final min = (duration ~/ 60).toString().padLeft(2, '0');
+      final sec = (duration % 60).toString().padLeft(2, '0');
+      statusText = '通话时长 $min:$sec';
+    } else {
+      if (isMe) {
+        statusText = '已取消';
+      } else {
+        statusText = '未接听';
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // Quick dial
+        final targetUserId = isMe ? message.roomId : message.senderId;
+        final targetUserName = isMe
+            ? '[对方]'
+            : message
+                  .senderName; // Placeholder if single chat title isn't easily accessible here
+
+        ref
+            .read(callStateProvider.notifier)
+            .startCall(
+              targetUserId: targetUserId,
+              targetUserName: targetUserName,
+              callType: isVideo ? CallType.video : CallType.voice,
+            );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 15,
+                color: isMe ? EbiColors.white : const Color(0xFF111111),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildContactCardContent(BuildContext context) {
@@ -245,15 +319,22 @@ class MessageBubble extends StatelessWidget {
       width: 200,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isMe ? Colors.white.withValues(alpha: 0.2) : const Color(0xFFF7F8FA),
+        color: isMe
+            ? Colors.white.withValues(alpha: 0.2)
+            : const Color(0xFFF7F8FA),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         children: [
           CircleAvatar(
-            backgroundColor: isMe ? Colors.white.withValues(alpha: 0.3) : const Color(0xFFE2EFFF),
+            backgroundColor: isMe
+                ? Colors.white.withValues(alpha: 0.3)
+                : const Color(0xFFE2EFFF),
             radius: 20,
-            child: Icon(Icons.person, color: isMe ? Colors.white : const Color(0xFF0052D9)),
+            child: Icon(
+              Icons.person,
+              color: isMe ? Colors.white : const Color(0xFF0052D9),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -275,7 +356,9 @@ class MessageBubble extends StatelessWidget {
                   '个人名片',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isMe ? Colors.white.withValues(alpha: 0.8) : const Color(0xFF999999),
+                    color: isMe
+                        ? Colors.white.withValues(alpha: 0.8)
+                        : const Color(0xFF999999),
                   ),
                 ),
               ],
@@ -287,13 +370,12 @@ class MessageBubble extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        final userId = message.extraProperties?['UserId'] as String? ?? 
-                       message.extraProperties?['userId'] as String?;
+        final userId =
+            message.extraProperties?['UserId'] as String? ??
+            message.extraProperties?['userId'] as String?;
         if (userId != null && userId.isNotEmpty) {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => UserProfilePage(userId: userId),
-            ),
+            MaterialPageRoute(builder: (_) => UserProfilePage(userId: userId)),
           );
         }
       },
@@ -313,10 +395,7 @@ class MessageBubble extends StatelessWidget {
           _formatTime(message.createdAt),
           style: TextStyle(fontSize: 10, color: timeColor),
         ),
-        if (isMe) ...[
-          const SizedBox(width: 4),
-          _buildStatusIcon(),
-        ],
+        if (isMe) ...[const SizedBox(width: 4), _buildStatusIcon()],
       ],
     );
   }
@@ -409,7 +488,11 @@ class _CopyToastOverlayState extends State<_CopyToastOverlay>
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                   SizedBox(height: 6),
                   Text(
                     '已复制',

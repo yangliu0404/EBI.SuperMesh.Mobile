@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mesh_work/src/pages/splash_page.dart';
 import 'package:mesh_work/src/pages/login_page.dart';
@@ -5,8 +6,9 @@ import 'package:mesh_work/src/routing/app_shell.dart';
 import 'package:ebi_chat/ebi_chat.dart';
 
 /// GoRouter configuration for MeshWork.
-GoRouter createAppRouter() {
+GoRouter createAppRouter({GlobalKey<NavigatorState>? navigatorKey}) {
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: '/',
     routes: [
       GoRoute(

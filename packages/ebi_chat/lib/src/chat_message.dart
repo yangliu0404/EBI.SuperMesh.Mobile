@@ -1,5 +1,5 @@
 /// Chat message types.
-enum MessageType { text, image, file, video, audio, system, contactCard }
+enum MessageType { text, image, file, video, audio, system, contactCard, voiceCall, videoCall }
 
 /// Delivery/read status for sent messages.
 enum MessageStatus { sending, sent, delivered, read }
