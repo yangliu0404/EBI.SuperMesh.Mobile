@@ -39,8 +39,9 @@ MessageType mapImMessageType(int backendType) {
     case ImMessageType.file:
       return MessageType.file;
     case ImMessageType.notifier:
-    case ImMessageType.meeting:
       return MessageType.system;
+    case ImMessageType.meeting:
+      return MessageType.meeting;
     case ImMessageType.contactCard:
       return MessageType.contactCard;
   }

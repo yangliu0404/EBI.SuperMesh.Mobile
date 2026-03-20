@@ -31,11 +31,14 @@ class _AppShellState extends ConsumerState<AppShell> {
   void initState() {
     super.initState();
     _currentIndex = widget.currentIndex;
-    // Initialize notifications after login (only fetches once).
-    ref.read(notificationsProvider.notifier).init();
-    // Connect SignalR for real-time chat (fire-and-forget, errors are logged).
-    ref.read(signalRConnectionProvider).connect().catchError((e) {
-      AppLogger.error('[AppShell] SignalR connect failed', e);
+    // Delay provider modifications to avoid "modified during build" error.
+    Future.microtask(() {
+      // Initialize notifications after login (only fetches once).
+      ref.read(notificationsProvider.notifier).init();
+      // Connect SignalR for real-time chat (fire-and-forget, errors are logged).
+      ref.read(signalRConnectionProvider).connect().catchError((e) {
+        AppLogger.error('[AppShell] SignalR connect failed', e);
+      });
     });
   }
 

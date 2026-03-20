@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/pages/outgoing_call_page.dart';
+import 'package:ebi_chat/src/widgets/meeting_message_card.dart';
 
 /// Chat message bubble — left-aligned for others, right-aligned blue for current user.
 class MessageBubble extends ConsumerWidget {
@@ -252,6 +253,8 @@ class MessageBubble extends ConsumerWidget {
       case MessageType.voiceCall:
       case MessageType.videoCall:
         return _buildCallCardContent(context, ref);
+      case MessageType.meeting:
+        return MeetingMessageCard(message: message, isMe: isMe);
     }
   }
 

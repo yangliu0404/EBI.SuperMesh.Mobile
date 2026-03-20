@@ -33,6 +33,7 @@ import 'package:ebi_chat/src/pages/chat_settings_page.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
 import 'package:ebi_chat/src/pages/outgoing_call_page.dart';
+import 'package:ebi_chat/src/pages/schedule_meeting_page.dart';
 
 const _uuid = Uuid();
 
@@ -569,6 +570,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.contactCard => ImMessageType.contactCard.value,
         MessageType.voiceCall => ImMessageType.voiceCall.value,
         MessageType.videoCall => ImMessageType.videoCall.value,
+        MessageType.meeting => ImMessageType.meeting.value,
       };
       extraProps = {
         'quotedMessageId': _replyingTo!.id,
@@ -662,6 +664,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.contactCard => ImMessageType.contactCard.value,
         MessageType.voiceCall => ImMessageType.voiceCall.value,
         MessageType.videoCall => ImMessageType.videoCall.value,
+        MessageType.meeting => ImMessageType.meeting.value,
       };
 
       final imMessage = ImChatMessage(
@@ -773,6 +776,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
         MessageType.contactCard => ImMessageType.contactCard.value,
         MessageType.voiceCall => ImMessageType.voiceCall.value,
         MessageType.videoCall => ImMessageType.videoCall.value,
+        MessageType.meeting => ImMessageType.meeting.value,
       };
 
       final forwardContent = message.fileUrl ?? message.content;
@@ -969,6 +973,44 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const OutgoingCallPage()));
+  }
+
+  void _startMeeting() {
+    // Open meeting creation page (choose instant or scheduled)
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.videocam_rounded, color: EbiColors.primaryBlue),
+              title: const Text('发起即时会议'),
+              subtitle: const Text('立即创建并进入会议'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const ScheduleMeetingPage(isInstant: true),
+                ));
+              },
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.calendar_month_rounded, color: Color(0xFF8B5CF6)),
+              title: const Text('预约会议'),
+              subtitle: const Text('设置时间并邀请参与者'),
+              onTap: () {
+                Navigator.pop(ctx);
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => const ScheduleMeetingPage(),
+                ));
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _pickVideo() async {
@@ -1271,6 +1313,7 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
             onPickVideo: _pickVideo,
             onVoiceCall: _startVoiceCall,
             onVideoCall: _startVideoCall,
+            onMeeting: _startMeeting,
             onSendVoice: _sendVoice,
             onTypingChanged: _isDirect ? _onTypingChanged : null,
             replyWidget: _replyingTo != null ? _buildReplyBar() : null,
@@ -1886,6 +1929,7 @@ class _ForwardConfirmSheetState extends State<_ForwardConfirmSheet> {
       case MessageType.text:
       case MessageType.voiceCall:
       case MessageType.videoCall:
+      case MessageType.meeting:
         return Row(
           children: [
             Expanded(

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Whiteboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #2D3748; overflow: hidden; touch-action: none; font-family: -apple-system, sans-serif; }
+#toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: #1A202C; border-bottom: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; }
+.tool-btn { width: 32px; height: 32px; border: none; border-radius: 6px; background: rgba(255,255,255,0.08); color: #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.tool-btn.active { background: #009FE3; }
+.color-dot { width: 20px; height: 20px; border-radius: 50%; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); }
+.color-dot.active { border-color: #009FE3; }
+.width-btn { padding: 2px 8px; border: none; border-radius: 8px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); font-size: 11px; cursor: pointer; }
+.width-btn.active { background: #009FE3; color: #fff; }
+.sep { width: 1px; height: 24px; background: rgba(255,255,255,0.1); margin: 0 4px; }
+.danger { background: rgba(239,68,68,0.2); color: #ef4444; }
+#canvas-wrap { position: relative; width: 100%; height: calc(100vh - 44px); }
+#canvas { width: 100%; height: 100%; display: block; }
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <button class="tool-btn active" data-tool="pen" title="Pen">&#9998;</button>
+  <button class="tool-btn" data-tool="eraser" title="Eraser">&#9003;</button>
+  <button class="tool-btn" data-tool="line" title="Line">&#9585;</button>
+  <button class="tool-btn" data-tool="rect" title="Rect">&#9633;</button>
+  <button class="tool-btn" data-tool="ellipse" title="Ellipse">&#9675;</button>
+  <div class="sep"></div>
+  <span class="color-dot active" data-color="#ffffff" style="background:#fff"></span>
+  <span class="color-dot" data-color="#ef4444" style="background:#ef4444"></span>
+  <span class="color-dot" data-color="#22c55e" style="background:#22c55e"></span>
+  <span class="color-dot" data-color="#3b82f6" style="background:#3b82f6"></span>
+  <span class="color-dot" data-color="#eab308" style="background:#eab308"></span>
+  <span class="color-dot" data-color="#f97316" style="background:#f97316"></span>
+  <span class="color-dot" data-color="#06b6d4" style="background:#06b6d4"></span>
+  <span class="color-dot" data-color="#a855f7" style="background:#a855f7"></span>
+  <div class="sep"></div>
+  <button class="width-btn active" data-width="2">2</button>
+  <button class="width-btn" data-width="4">4</button>
+  <button class="width-btn" data-width="8">8</button>
+  <div class="sep"></div>
+  <button class="tool-btn" id="undoBtn" title="Undo">&#8617;</button>
+  <button class="tool-btn" id="redoBtn" title="Redo">&#8618;</button>
+  <button class="tool-btn danger" id="clearBtn" title="Clear">&#128465;</button>
+</div>
+<div id="canvas-wrap"><canvas id="canvas"></canvas></div>
+
+<script>
+(function() {
+  // ── Pure JSON stroke sync (no Yjs) ──
+  const strokes = []; // [{tool, color, width, points:[[x,y],...]}]
+  const undoStack = [];
+  let currentStroke = null;
+  let W, H;
+
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    const wrap = document.getElementById('canvas-wrap');
+    W = wrap.clientWidth; H = wrap.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    redraw();
+  }
+  window.addEventListener('resize', resize);
+
+  let currentTool = 'pen';
+  let currentColor = '#ffffff';
+  let currentWidth = 2;
+  let drawing = false;
+  let startPt = null;
+
+  // ── Toolbar ──
+  document.querySelectorAll('[data-tool]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTool = btn.dataset.tool;
+    });
+  });
+  document.querySelectorAll('[data-color]').forEach(dot => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('[data-color]').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+      currentColor = dot.dataset.color;
+      if (currentTool === 'eraser') document.querySelector('[data-tool="pen"]').click();
+    });
+  });
+  document.querySelectorAll('[data-width]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-width]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentWidth = parseInt(btn.dataset.width);
+    });
+  });
+  document.getElementById('undoBtn').addEventListener('click', () => {
+    if (strokes.length > 0) { undoStack.push(strokes.pop()); redraw(); notifyChanged(); }
+  });
+  document.getElementById('redoBtn').addEventListener('click', () => {
+    if (undoStack.length > 0) { strokes.push(undoStack.pop()); redraw(); notifyChanged(); }
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    strokes.length = 0; undoStack.length = 0; redraw(); notifyChanged();
+  });
+
+  // ── Drawing ──
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return [((t.clientX - r.left) / W), ((t.clientY - r.top) / H)];
+  }
+
+  function onStart(e) {
+    e.preventDefault(); drawing = true;
+    const p = getPos(e);
+    if (currentTool === 'eraser') { eraseAt(p); }
+    else if (currentTool === 'pen') { currentStroke = { tool:'pen', color:currentColor, width:currentWidth, points:[p] }; }
+    else { startPt = p; }
+  }
+
+  function onMove(e) {
+    if (!drawing) return; e.preventDefault();
+    const p = getPos(e);
+    if (currentTool === 'eraser') { eraseAt(p); }
+    else if (currentTool === 'pen' && currentStroke) {
+      currentStroke.points.push(p); redraw(); drawStroke(currentStroke);
+    } else if (startPt) {
+      redraw(); drawStroke({ tool:currentTool, color:currentColor, width:currentWidth, points:[startPt, p] });
+    }
+  }
+
+  function onEnd(e) {
+    if (!drawing) return; drawing = false;
+    if (currentTool === 'pen' && currentStroke && currentStroke.points.length > 1) {
+      strokes.push(currentStroke); undoStack.length = 0; redraw(); notifyChanged();
+    } else if (currentTool !== 'pen' && currentTool !== 'eraser' && startPt) {
+      const p = getPos(e.changedTouches ? e.changedTouches[0] : e);
+      const s = { tool:currentTool, color:currentColor, width:currentWidth, points:[startPt, p] };
+      strokes.push(s); undoStack.length = 0; redraw(); notifyChanged();
+    }
+    currentStroke = null; startPt = null;
+  }
+
+  function eraseAt(p) {
+    let changed = false;
+    for (let i = strokes.length - 1; i >= 0; i--) {
+      if (strokes[i].points.some(pt => Math.hypot(pt[0]-p[0], pt[1]-p[1]) < 0.025)) {
+        strokes.splice(i, 1); changed = true;
+      }
+    }
+    if (changed) { redraw(); notifyChanged(); }
+  }
+
+  canvas.addEventListener('mousedown', onStart);
+  canvas.addEventListener('mousemove', onMove);
+  canvas.addEventListener('mouseup', onEnd);
+  canvas.addEventListener('mouseleave', onEnd);
+  canvas.addEventListener('touchstart', onStart, { passive: false });
+  canvas.addEventListener('touchmove', onMove, { passive: false });
+  canvas.addEventListener('touchend', onEnd);
+
+  // ── Rendering ──
+  function redraw() {
+    ctx.clearRect(0, 0, W, H);
+    strokes.forEach(s => drawStroke(s));
+  }
+
+  function drawStroke(s) {
+    if (!s.points || s.points.length < 1) return;
+    ctx.strokeStyle = s.color || '#fff';
+    ctx.lineWidth = s.width || 2;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+    if (s.tool === 'pen') {
+      ctx.beginPath();
+      ctx.moveTo(s.points[0][0]*W, s.points[0][1]*H);
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i][0]*W, s.points[i][1]*H);
+      ctx.stroke();
+    } else if (s.tool === 'line' && s.points.length >= 2) {
+      ctx.beginPath(); ctx.moveTo(s.points[0][0]*W, s.points[0][1]*H); ctx.lineTo(s.points[1][0]*W, s.points[1][1]*H); ctx.stroke();
+    } else if (s.tool === 'rect' && s.points.length >= 2) {
+      ctx.strokeRect(s.points[0][0]*W, s.points[0][1]*H, (s.points[1][0]-s.points[0][0])*W, (s.points[1][1]-s.points[0][1])*H);
+    } else if (s.tool === 'ellipse' && s.points.length >= 2) {
+      const cx=(s.points[0][0]+s.points[1][0])/2*W, cy=(s.points[0][1]+s.points[1][1])/2*H;
+      const rx=Math.abs(s.points[1][0]-s.points[0][0])/2*W, ry=Math.abs(s.points[1][1]-s.points[0][1])/2*H;
+      ctx.beginPath(); ctx.ellipse(cx,cy,rx,ry,0,0,Math.PI*2); ctx.stroke();
+    }
+  }
+
+  // ── Flutter Bridge ──
+  function notifyChanged() {
+    if (window.FlutterBridge) {
+      window.FlutterBridge.postMessage(JSON.stringify({ type: 'strokes-changed', strokes: strokes }));
+    }
+  }
+
+  // Receive strokes from Flutter (remote sync)
+  window.setStrokes = function(json) {
+    try {
+      const remote = JSON.parse(json);
+      if (Array.isArray(remote)) {
+        strokes.length = 0;
+        remote.forEach(s => strokes.push(s));
+        redraw();
+      }
+    } catch(e) { console.error('[WB] setStrokes error:', e); }
+  };
+
+  // Get current strokes as JSON
+  window.getStrokes = function() { return JSON.stringify(strokes); };
+
+  // Signal ready
+  setTimeout(() => {
+    if (window.FlutterBridge) {
+      window.FlutterBridge.postMessage(JSON.stringify({ type: 'ready' }));
+    }
+  }, 100);
+
+  resize();
+})();
+</script>
+</body>
+</html>

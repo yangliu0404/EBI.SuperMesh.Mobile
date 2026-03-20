@@ -71,6 +71,8 @@ class _MeshWorkAppState extends ConsumerState<MeshWorkApp> {
             child ?? const SizedBox.shrink(),
             // Call floating window (shows only when call is minimized)
             CallFloatWindow(navigatorKey: rootNavigatorKey),
+            // Meeting floating window (shows only when meeting is minimized)
+            MeetingFloatWindow(navigatorKey: rootNavigatorKey),
           ],
         );
       },
