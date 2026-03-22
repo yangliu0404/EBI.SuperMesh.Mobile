@@ -71,7 +71,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
     if (question.isEmpty) return;
     final options = _optionCtrls.map((c) => c.text.trim()).where((t) => t.isNotEmpty).toList();
     if (options.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('至少需要2个选项')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.L('AtLeast2Options'))));
       return;
     }
 
@@ -125,7 +125,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(children: [
-                const Text('投票', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                Text(context.L('Poll'), style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 if (widget.isHost)
                   GestureDetector(
@@ -133,7 +133,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(color: EbiColors.primaryBlue, borderRadius: BorderRadius.circular(12)),
-                      child: Text(_showCreateForm ? '取消' : '发起投票', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                      child: Text(_showCreateForm ? '取消' : context.L('CreatePoll'), style: const TextStyle(color: Colors.white, fontSize: 12)),
                     ),
                   ),
                 const SizedBox(width: 8),
@@ -149,7 +149,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
                   : _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _polls.isEmpty
-                          ? const Center(child: Text('暂无投票', style: TextStyle(color: Colors.white38)))
+                          ? Center(child: Text(context.L('NoPolls'), style: const TextStyle(color: Colors.white38)))
                           : ListView.builder(
                               padding: const EdgeInsets.all(8),
                               itemCount: _polls.length,
@@ -174,7 +174,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
           TextField(
             controller: _questionCtrl,
             style: const TextStyle(color: Colors.white, fontSize: 14),
-            decoration: _inputDeco('投票问题'),
+            decoration: _inputDeco(context.L('PollQuestion')),
           ),
           const SizedBox(height: 12),
 
@@ -197,7 +197,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
             TextButton.icon(
               onPressed: () => setState(() => _optionCtrls.add(TextEditingController())),
               icon: const Icon(Icons.add, size: 16),
-              label: const Text('添加选项', style: TextStyle(fontSize: 12)),
+              label: Text(context.L('AddOption'), style: const TextStyle(fontSize: 12)),
             ),
 
           const SizedBox(height: 12),
@@ -214,7 +214,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
                       color: _pollType == PollType.singleChoice ? EbiColors.primaryBlue : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text('单选', textAlign: TextAlign.center, style: TextStyle(color: _pollType == PollType.singleChoice ? Colors.white : Colors.white54, fontSize: 13)),
+                    child: Text(context.L('SingleChoice'), textAlign: TextAlign.center, style: TextStyle(color: _pollType == PollType.singleChoice ? Colors.white : Colors.white54, fontSize: 13)),
                   ),
                 ),
               ),
@@ -228,7 +228,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
                       color: _pollType == PollType.multipleChoice ? EbiColors.primaryBlue : Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text('多选', textAlign: TextAlign.center, style: TextStyle(color: _pollType == PollType.multipleChoice ? Colors.white : Colors.white54, fontSize: 13)),
+                    child: Text(context.L('MultipleChoice'), textAlign: TextAlign.center, style: TextStyle(color: _pollType == PollType.multipleChoice ? Colors.white : Colors.white54, fontSize: 13)),
                   ),
                 ),
               ),
@@ -237,7 +237,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Text('匿名投票', style: TextStyle(color: Colors.white70, fontSize: 13)),
+              Text(context.L('AnonymousPoll'), style: const TextStyle(color: Colors.white70, fontSize: 13)),
               const Spacer(),
               Switch(
                 value: _isAnonymous,
@@ -256,7 +256,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
               style: ElevatedButton.styleFrom(backgroundColor: EbiColors.primaryBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: _isCreating
                   ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('发起投票'),
+                  : Text(context.L('CreatePoll')),
             ),
           ),
         ],
@@ -302,7 +302,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
                   color: isClosed ? Colors.red.withValues(alpha: 0.2) : EbiColors.success.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(isClosed ? '已结束' : '进行中', style: TextStyle(fontSize: 10, color: isClosed ? Colors.red : EbiColors.success)),
+                child: Text(isClosed ? context.L('Ended') : context.L('InProgress'), style: TextStyle(fontSize: 10, color: isClosed ? Colors.red : EbiColors.success)),
               ),
             ],
           ),
@@ -399,7 +399,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
               child: ElevatedButton(
                 onPressed: (_selectedOptions[poll.id]?.isNotEmpty ?? false) ? () => _vote(poll) : null,
                 style: ElevatedButton.styleFrom(backgroundColor: EbiColors.primaryBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                child: const Text('投票', style: TextStyle(fontSize: 13)),
+                child: Text(context.L('Poll'), style: const TextStyle(fontSize: 13)),
               ),
             ),
           ],
@@ -410,7 +410,7 @@ class _MeetingPollPanelState extends ConsumerState<MeetingPollPanel> {
               child: OutlinedButton(
                 onPressed: () => _closePoll(poll.id),
                 style: OutlinedButton.styleFrom(foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                child: const Text('关闭投票', style: TextStyle(fontSize: 13)),
+                child: Text(context.L('ClosePoll'), style: const TextStyle(fontSize: 13)),
               ),
             ),
           ],

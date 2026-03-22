@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/meeting_models.dart';
 import 'package:ebi_chat/src/providers/meeting_providers.dart';
@@ -32,10 +33,10 @@ class _MeetingListPageState extends ConsumerState<MeetingListPage> {
   DateTimeRange? _dateRange;
 
   static const _filters = [
-    _FilterTab('全部', null),
-    _FilterTab('进行中', MeetingStatus.inProgress),
-    _FilterTab('待开始', MeetingStatus.waiting),
-    _FilterTab('已结束', MeetingStatus.ended),
+    _FilterTab('All', null),
+    _FilterTab('InProgress', MeetingStatus.inProgress),
+    _FilterTab('Upcoming', MeetingStatus.waiting),
+    _FilterTab('Ended', MeetingStatus.ended),
   ];
 
   @override
@@ -330,7 +331,7 @@ class _StatusFilterBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  filters[i].label,
+                  context.L(filters[i].label),
                   style: TextStyle(
                     fontSize: 13,
                     color: selected ? EbiColors.white : EbiColors.textSecondary,
@@ -478,7 +479,7 @@ class _MeetingTile extends StatelessWidget {
           ],
         ],
       ),
-      trailing: _buildStatusBadge(),
+      trailing: _buildStatusBadge(context),
     );
   }
 
@@ -489,13 +490,13 @@ class _MeetingTile extends StatelessWidget {
         MeetingStatus.cancelled => EbiColors.error,
       };
 
-  Widget _buildStatusBadge() {
+  Widget _buildStatusBadge(BuildContext context) {
     final color = _statusColor;
-    final text = switch (meeting.status) {
-      MeetingStatus.inProgress => '进行中',
-      MeetingStatus.waiting => '待开始',
-      MeetingStatus.ended => '已结束',
-      MeetingStatus.cancelled => '已取消',
+    final textKey = switch (meeting.status) {
+      MeetingStatus.inProgress => 'InProgress',
+      MeetingStatus.waiting => 'Upcoming',
+      MeetingStatus.ended => 'Ended',
+      MeetingStatus.cancelled => 'CallCancelled',
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -503,7 +504,7 @@ class _MeetingTile extends StatelessWidget {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Text(text, style: TextStyle(fontSize: 11, color: color)),
+      child: Text(context.L(textKey), style: TextStyle(fontSize: 11, color: color)),
     );
   }
 }

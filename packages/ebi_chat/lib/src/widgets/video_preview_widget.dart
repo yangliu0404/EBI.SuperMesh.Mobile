@@ -5,6 +5,7 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 
 /// Inline video player.
@@ -190,7 +191,7 @@ class _VideoPreviewWidgetState extends ConsumerState<VideoPreviewWidget> {
                 _downloadAndInit();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('重试'),
+              label: Text(context.L('Retry')),
             ),
           ],
         ),

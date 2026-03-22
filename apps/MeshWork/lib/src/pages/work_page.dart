@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/ebi_chat.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Work page — workbench with entries to various features.
 class WorkPage extends StatelessWidget {
@@ -9,36 +10,36 @@ class WorkPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const EbiAppBar(title: 'Work', showBack: false),
+      appBar: EbiAppBar(title: context.L('Work'), showBack: false),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           // Section: Communication
-          _SectionHeader(title: '协作工具'),
+          _SectionHeader(title: context.L('CollaborationTools')),
           const SizedBox(height: 8),
           _WorkbenchGrid(
             items: [
               _WorkbenchItem(
                 icon: Icons.videocam_rounded,
-                label: '会议',
+                label: context.L('Meeting'),
                 color: EbiColors.primaryBlue,
                 onTap: () => _openMeetingList(context),
               ),
               _WorkbenchItem(
                 icon: Icons.calendar_month_rounded,
-                label: '日程',
+                label: context.L('Schedule'),
                 color: const Color(0xFF8B5CF6),
                 onTap: () {},
               ),
               _WorkbenchItem(
                 icon: Icons.task_alt_rounded,
-                label: '任务',
+                label: context.L('Task'),
                 color: const Color(0xFF22C55E),
                 onTap: () {},
               ),
               _WorkbenchItem(
                 icon: Icons.description_rounded,
-                label: '文档',
+                label: context.L('Document'),
                 color: const Color(0xFFF59E0B),
                 onTap: () {},
               ),

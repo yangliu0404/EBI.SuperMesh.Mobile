@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/meeting_models.dart';
 import 'package:ebi_chat/src/providers/meeting_providers.dart';
@@ -98,20 +99,20 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('输入会议密码'),
+        title: Text(context.L('EnterMeetingPassword')),
         content: TextField(
           controller: pwController,
           obscureText: true,
-          decoration: const InputDecoration(hintText: '请输入密码'),
+          decoration: InputDecoration(hintText: context.L('PleaseEnterPassword')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(context.L('Cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, pwController.text),
-            child: const Text('确定'),
+            child: Text(context.L('Confirm')),
           ),
         ],
       ),
@@ -131,9 +132,9 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
           icon: const Icon(Icons.close, color: EbiColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          '加入会议',
-          style: TextStyle(color: EbiColors.textPrimary, fontSize: 17),
+        title: Text(
+          context.L('JoinMeeting'),
+          style: const TextStyle(color: EbiColors.textPrimary, fontSize: 17),
         ),
         centerTitle: true,
       ),
@@ -144,9 +145,9 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
             children: [
               const SizedBox(height: 24),
               // Meeting number input
-              const Text(
-                '请输入会议号',
-                style: TextStyle(
+              Text(
+                context.L('EnterMeetingNumber'),
+                style: const TextStyle(
                   fontSize: 16,
                   color: EbiColors.textSecondary,
                 ),
@@ -162,7 +163,7 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
                   LengthLimitingTextInputFormatter(8),
                 ],
                 decoration: InputDecoration(
-                  hintText: '8位会议号',
+                  hintText: context.L('MeetingNumberHint'),
                   hintStyle: TextStyle(
                     color: EbiColors.textHint,
                     fontSize: 24,
@@ -215,7 +216,7 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
                         children: [
                           _MediaButton(
                             icon: _isMicMuted ? Icons.mic_off : Icons.mic,
-                            label: _isMicMuted ? '已静音' : '静音',
+                            label: _isMicMuted ? context.L('Muted') : context.L('Mute'),
                             isActive: !_isMicMuted,
                             onTap: () =>
                                 setState(() => _isMicMuted = !_isMicMuted),
@@ -233,7 +234,7 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
                           const SizedBox(width: 24),
                           _MediaButton(
                             icon: Icons.volume_up,
-                            label: '扬声器',
+                            label: context.L('Speaker'),
                             isActive: true,
                             onTap: () {},
                           ),
@@ -268,9 +269,9 @@ class _JoinMeetingPageState extends ConsumerState<JoinMeetingPage> {
                             color: EbiColors.white,
                           ),
                         )
-                      : const Text(
-                          '进入会议',
-                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                      : Text(
+                          context.L('EnterMeeting'),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                         ),
                 ),
               ),

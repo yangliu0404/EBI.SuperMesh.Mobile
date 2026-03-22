@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
 import 'package:ebi_chat/src/pages/call_page.dart';
@@ -72,15 +73,15 @@ class _OutgoingCallPageState extends ConsumerState<OutgoingCallPage>
       }
     });
 
-    final targetName = callState.outgoingCallTargetName ?? '未知用户';
+    final targetName = callState.outgoingCallTargetName ?? context.L('UnknownUser');
     final targetAvatarUrl = callState.outgoingCallTargetAvatarUrl;
     final isTerminal = callState.isDialingTerminal;
 
-    String statusText = '正在呼叫…';
-    if (callState.outgoingCallStatus == 'rejected') statusText = '对方已拒绝';
-    if (callState.outgoingCallStatus == 'busy') statusText = '对方忙';
-    if (callState.outgoingCallStatus == 'no-answer') statusText = '无人接听';
-    if (callState.outgoingCallStatus == 'cancelled') statusText = '已取消';
+    String statusText = context.L('Calling');
+    if (callState.outgoingCallStatus == 'rejected') statusText = context.L('CallRejected');
+    if (callState.outgoingCallStatus == 'busy') statusText = context.L('CallBusy');
+    if (callState.outgoingCallStatus == 'no-answer') statusText = context.L('NoAnswer');
+    if (callState.outgoingCallStatus == 'cancelled') statusText = context.L('CallCancelled');
 
     final textStatusColor = isTerminal ? const Color(0xFFF87171) : Colors.white70;
 
@@ -227,9 +228,9 @@ class _OutgoingCallPageState extends ConsumerState<OutgoingCallPage>
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Text(
-                          '取消',
-                          style: TextStyle(
+                        Text(
+                          context.L('Cancel'),
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white70,
                           ),

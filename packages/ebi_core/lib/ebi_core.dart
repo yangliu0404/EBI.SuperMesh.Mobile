@@ -27,6 +27,12 @@ export 'src/providers/abp_config_provider.dart';
 export 'src/providers/settings_state.dart';
 export 'src/providers/settings_providers.dart';
 
+// Localization
+export 'src/localization/abp_localization_models.dart';
+export 'src/localization/localization_service.dart';
+export 'src/localization/localization_provider.dart';
+export 'src/localization/localization_extensions.dart';
+
 // Notifications
 export 'src/notifications/notification_repository.dart';
 export 'src/notifications/mock_notification_repository.dart';

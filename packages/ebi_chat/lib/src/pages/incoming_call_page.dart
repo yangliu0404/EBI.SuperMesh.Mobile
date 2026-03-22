@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
 
@@ -58,7 +59,7 @@ class _IncomingCallPageState extends ConsumerState<IncomingCallPage>
     final isVideo = incoming.callType == CallType.video;
     final callerName = incoming.callerUserName.isNotEmpty
         ? incoming.callerUserName
-        : '未知用户';
+        : context.L('UnknownUser');
 
     // Incoming call gradient background (dark premium feel)
     return Scaffold(
@@ -144,7 +145,7 @@ class _IncomingCallPageState extends ConsumerState<IncomingCallPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isVideo ? '视频通话' : '语音通话',
+                  isVideo ? context.L('VideoCall') : context.L('VoiceCall'),
                   style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white70,
@@ -152,9 +153,9 @@ class _IncomingCallPageState extends ConsumerState<IncomingCallPage>
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  '来电中…',
-                  style: TextStyle(fontSize: 14, color: Color(0xFF4ADE80)),
+                Text(
+                  context.L('IncomingCall'),
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF4ADE80)),
                 ),
 
                 const Spacer(),
@@ -189,9 +190,9 @@ class _IncomingCallPageState extends ConsumerState<IncomingCallPage>
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            '拒绝',
-                            style: TextStyle(
+                          Text(
+                            context.L('Reject'),
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.white70,
                             ),
@@ -222,9 +223,9 @@ class _IncomingCallPageState extends ConsumerState<IncomingCallPage>
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            '接听',
-                            style: TextStyle(
+                          Text(
+                            context.L('Accept'),
+                            style: const TextStyle(
                               fontSize: 14,
                               color: Colors.white70,
                             ),

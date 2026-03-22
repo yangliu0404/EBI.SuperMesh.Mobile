@@ -55,7 +55,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EbiColors.bgMeshWork,
-      appBar: const EbiAppBar(title: 'Feedback'),
+      appBar: EbiAppBar(title: ref.L('Feedback')),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: ListView(
@@ -106,7 +106,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
-            'SELECT CATEGORY',
+            ref.L('SelectCategory'),
             style: EbiTextStyles.labelSmall.copyWith(
               color: EbiColors.textSecondary,
               letterSpacing: 1.2,
@@ -147,7 +147,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      type.label,
+                      _localizedTypeLabel(type),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight:
@@ -186,7 +186,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
-            'DESCRIPTION',
+            ref.L('Description'),
             style: EbiTextStyles.labelSmall.copyWith(
               color: EbiColors.textSecondary,
               letterSpacing: 1.2,
@@ -314,6 +314,23 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
     );
   }
 
+  String _localizedTypeLabel(FeedbackType type) {
+    switch (type) {
+      case FeedbackType.suggestion:
+        return ref.L('Suggestion');
+      case FeedbackType.bug:
+        return ref.L('BugReport');
+      case FeedbackType.feature:
+        return ref.L('Feature');
+      case FeedbackType.performance:
+        return ref.L('Performance');
+      case FeedbackType.ui:
+        return ref.L('UIUX');
+      case FeedbackType.other:
+        return ref.L('Other');
+    }
+  }
+
   String _hintForType(FeedbackType type) {
     switch (type) {
       case FeedbackType.suggestion:
@@ -341,7 +358,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           child: Row(
             children: [
               Text(
-                'CONTACT',
+                ref.L('Contact'),
                 style: EbiTextStyles.labelSmall.copyWith(
                   color: EbiColors.textSecondary,
                   letterSpacing: 1.2,
@@ -356,8 +373,8 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   color: EbiColors.divider.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
-                  'OPTIONAL',
+                child: Text(
+                  ref.L('Optional'),
                   style: TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
@@ -382,7 +399,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   // ── Submit Button ──
   Widget _buildSubmitButton() {
     return EbiButton(
-      text: 'Submit Feedback',
+      text: ref.L('SubmitFeedback'),
       icon: Icons.send_outlined,
       width: double.infinity,
       isLoading: _isSubmitting,
@@ -427,7 +444,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Thank You!',
+              ref.L('ThankYou'),
               style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
             ),
             const SizedBox(height: 8),
@@ -446,7 +463,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).pop();
                 },
-                child: const Text('Done'),
+                child: Text(ref.L('Done')),
               ),
             ),
           ],

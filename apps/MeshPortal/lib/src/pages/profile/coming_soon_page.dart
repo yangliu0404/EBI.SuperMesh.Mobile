@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Generic placeholder page for features not yet implemented.
 class ComingSoonPage extends StatelessWidget {
@@ -25,12 +26,12 @@ class ComingSoonPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Coming Soon',
+              context.L('ComingSoon'),
               style: EbiTextStyles.h3.copyWith(color: EbiColors.textSecondary),
             ),
             const SizedBox(height: 8),
             Text(
-              'This feature is under development.',
+              context.L('FeatureUnderDevelopment'),
               style: EbiTextStyles.bodySmall,
             ),
           ],

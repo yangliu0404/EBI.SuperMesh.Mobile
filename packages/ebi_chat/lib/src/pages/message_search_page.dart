@@ -235,7 +235,7 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
           controller: _searchController,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: '搜索',
+            hintText: context.L('Search'),
             hintStyle: const TextStyle(fontSize: 14, color: Color(0xFFCCCCCC)),
             prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF999999)),
             border: InputBorder.none,
@@ -274,11 +274,11 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
         tabAlignment: TabAlignment.start,
         dividerColor: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        tabs: const [
-          Tab(text: '聊天记录'),
-          Tab(text: '图片/视频'),
-          Tab(text: '文件'),
-          Tab(text: '链接'),
+        tabs: [
+          Tab(text: context.L('ChatHistory')),
+          Tab(text: context.L('ImagesAndVideos')),
+          Tab(text: context.L('File')),
+          Tab(text: context.L('Links')),
         ],
       ),
     );
@@ -293,7 +293,7 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
         spacing: 8,
         children: [
           _buildFilterChip(
-            _selectedSenderName ?? '发送人', 
+            _selectedSenderName ?? context.L('Sender'), 
             Icons.arrow_drop_down,
             isActive: _selectedSenderId != null,
             onTap: _selectSender,
@@ -308,7 +308,7 @@ class _MessageSearchPageState extends ConsumerState<MessageSearchPage> with Sing
           _buildFilterChip(
             _selectedDateRange != null 
                 ? '${_selectedDateRange!.start.year}-${_selectedDateRange!.start.month.toString().padLeft(2, '0')}-${_selectedDateRange!.start.day.toString().padLeft(2, '0')} 至 ${_selectedDateRange!.end.year}-${_selectedDateRange!.end.month.toString().padLeft(2, '0')}-${_selectedDateRange!.end.day.toString().padLeft(2, '0')}'
-                : '时间', 
+                : context.L('Time'), 
             Icons.arrow_drop_down,
             isActive: _selectedDateRange != null,
             onTap: _selectDateRange,

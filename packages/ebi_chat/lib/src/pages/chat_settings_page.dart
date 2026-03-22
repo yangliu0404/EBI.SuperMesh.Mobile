@@ -71,8 +71,8 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '聊天设置',
+        title: Text(
+          context.L('ChatSettings'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -85,7 +85,7 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
       ),
       backgroundColor: const Color(0xFFF2F2F6),
       body: _loading
-          ? const EbiLoading(message: '加载中...')
+          ? EbiLoading(message: context.L('Loading'))
           : ListView(
               children: [
                 const SizedBox(height: 8),
@@ -218,9 +218,9 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
                     child: const Icon(Icons.add, color: Color(0xFF999999), size: 24),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    '发起群聊',
-                    style: TextStyle(fontSize: 16, color: Color(0xFF111111)),
+                  Text(
+                    context.L('CreateGroupChat'),
+                    style: const TextStyle(fontSize: 16, color: Color(0xFF111111)),
                   ),
                 ],
               ),
@@ -248,13 +248,13 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
                   color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.search, size: 18, color: Color(0xFF999999)),
-                    SizedBox(width: 8),
+                    const Icon(Icons.search, size: 18, color: Color(0xFF999999)),
+                    const SizedBox(width: 8),
                     Text(
-                      '搜索',
-                      style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                      context.L('Search'),
+                      style: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
                     ),
                   ],
                 ),
@@ -269,16 +269,16 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
                 spacing: 0,
                 runSpacing: 20,
                 children: [
-                  _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: () => _searchHistory(0)),
-                  _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _searchHistory(1)),
-                  _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _searchHistory(2)),
-                  _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _searchHistory(3)),
-                  
+                  _categoryIcon(Icons.chat_bubble_outline, context.L('ChatHistory'), width: itemWidth, onTap: () => _searchHistory(0)),
+                  _categoryIcon(Icons.image_outlined, context.L('ImagesAndVideos'), width: itemWidth, onTap: () => _searchHistory(1)),
+                  _categoryIcon(Icons.folder_outlined, context.L('File'), width: itemWidth, onTap: () => _searchHistory(2)),
+                  _categoryIcon(Icons.link, context.L('Links'), width: itemWidth, onTap: () => _searchHistory(3)),
+
                   // ERP & Enterprise integrations
-                  _categoryIcon(Icons.assignment_outlined, '相关项目', width: itemWidth, onTap: () => _showComingSoon('相关项目')),
-                  _categoryIcon(Icons.task_alt, '相关任务', width: itemWidth, onTap: () => _showComingSoon('相关任务')),
-                  _categoryIcon(Icons.fact_check_outlined, '相关审批', width: itemWidth, onTap: () => _showComingSoon('相关审批')),
-                  _categoryIcon(Icons.receipt_long_outlined, '往来单据', width: itemWidth, onTap: () => _showComingSoon('往来单据')),
+                  _categoryIcon(Icons.assignment_outlined, context.L('RelatedProjects'), width: itemWidth, onTap: () => _showComingSoon('相关项目')),
+                  _categoryIcon(Icons.task_alt, context.L('RelatedTasks'), width: itemWidth, onTap: () => _showComingSoon('相关任务')),
+                  _categoryIcon(Icons.fact_check_outlined, context.L('RelatedApprovals'), width: itemWidth, onTap: () => _showComingSoon('相关审批')),
+                  _categoryIcon(Icons.receipt_long_outlined, context.L('CorrespondenceDocuments'), width: itemWidth, onTap: () => _showComingSoon('往来单据')),
                 ],
               );
             }),
@@ -318,7 +318,7 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     return _buildCard(
       child: Column(
         children: [
-          _toggleRow('置顶会话', _isPinned, (v) async {
+          _toggleRow(context.L('PinConversation'), _isPinned, (v) async {
             final old = _isPinned;
             setState(() => _isPinned = v);
             try {
@@ -337,7 +337,7 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
             }
           }),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _toggleRow('消息免打扰', _isMuted, (v) async {
+          _toggleRow(context.L('DoNotDisturb'), _isMuted, (v) async {
              final old = _isMuted;
              setState(() => _isMuted = v);
              try {
@@ -393,10 +393,10 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('快捷栏', style: TextStyle(fontSize: 16, color: Color(0xFF111111))),
-                  SizedBox(height: 4),
-                  Text('关闭后，所有单聊不再展示快捷栏', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+                children: [
+                  Text(context.L('QuickBar'), style: const TextStyle(fontSize: 16, color: Color(0xFF111111))),
+                  const SizedBox(height: 4),
+                  const Text('关闭后，所有单聊不再展示快捷栏', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
                 ],
               ),
             ),
@@ -417,9 +417,9 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     return _buildCard(
       child: Column(
         children: [
-          _settingTile('设置聊天背景', onTap: () => _showComingSoon('聊天背景')),
+          _settingTile(context.L('SetChatBackground'), onTap: () => _showComingSoon('聊天背景')),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _settingTile('AI实时翻译', onTap: () => _showComingSoon('AI实时翻译')),
+          _settingTile(context.L('AITranslation'), onTap: () => _showComingSoon('AI实时翻译')),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _settingTile('添加当前联系人到 Siri', onTap: () => _showComingSoon('Siri联系人添加')),
         ],
@@ -433,12 +433,12 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     return _buildCard(
       child: InkWell(
         onTap: _clearHistory,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Center(
             child: Text(
-              '清空聊天记录',
-              style: TextStyle(fontSize: 16, color: Color(0xFFFF4D4F)),
+              context.L('ClearChatHistory'),
+              style: const TextStyle(fontSize: 16, color: Color(0xFFFF4D4F)),
             ),
           ),
         ),
@@ -471,8 +471,8 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
   void _createGroupChat() async {
     final selectedUsers = await Navigator.of(context).push<List<Map<String, dynamic>>>(
       MaterialPageRoute(
-        builder: (_) => const UserSelectionPage(
-          title: '发起群聊',
+        builder: (_) => UserSelectionPage(
+          title: context.L('CreateGroupChat'),
         ),
       ),
     );
@@ -501,17 +501,17 @@ class _ChatSettingsPageState extends ConsumerState<ChatSettingsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('清空聊天记录'),
+        title: Text(context.L('ClearChatHistory')),
         content: const Text('确定要清空与此联系人的所有聊天记录吗？此操作不可恢复。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(context.L('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('清空'),
+            child: Text(context.L('Clear')),
           ),
         ],
       ),

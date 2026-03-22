@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Notification category model for the message center.
 class NotificationCategory {
@@ -137,7 +138,7 @@ class NotificationSection extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              cat.title,
+              context.L(cat.title),
               style: EbiTextStyles.labelSmall.copyWith(fontSize: 10),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

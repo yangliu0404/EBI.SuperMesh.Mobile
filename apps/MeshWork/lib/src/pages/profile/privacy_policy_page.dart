@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Privacy Policy page for MeshWork.
 class PrivacyPolicyPage extends StatelessWidget {
@@ -11,7 +12,7 @@ class PrivacyPolicyPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EbiColors.bgMeshWork,
-      appBar: const EbiAppBar(title: 'Privacy Policy'),
+      appBar: EbiAppBar(title: context.L('PrivacyPolicy')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [

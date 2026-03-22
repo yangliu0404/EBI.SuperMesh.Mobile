@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:ebi_chat/src/models/call_models.dart';
 import 'package:ebi_chat/src/providers/call_providers.dart';
@@ -300,10 +301,10 @@ class _CallPageState extends ConsumerState<CallPage> {
           if (participant == null) {
             return Container(
               color: const Color(0xFF111827),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  '等待对方加入...',
-                  style: TextStyle(color: Colors.white54),
+                  context.L('WaitingForOtherParty'),
+                  style: const TextStyle(color: Colors.white54),
                 ),
               ),
             );
@@ -316,8 +317,8 @@ class _CallPageState extends ConsumerState<CallPage> {
 
           return Container(
             color: const Color(0xFF111827),
-            child: const Center(
-              child: Text('用户未开启画面', style: TextStyle(color: Colors.white54)),
+            child: Center(
+              child: Text(context.L('UserCameraOff'), style: const TextStyle(color: Colors.white54)),
             ),
           );
         },

@@ -33,7 +33,7 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('用户设置'),
+        title: Text(context.L('UserSettings')),
         backgroundColor: EbiColors.primaryBlue,
         foregroundColor: EbiColors.white,
         elevation: 0,
@@ -49,14 +49,14 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
               children: [
                 _buildSettingTile(
                   icon: Icons.edit_outlined,
-                  label: '设置备注',
-                  value: _remarkName.isNotEmpty ? _remarkName : '未设置',
+                  label: context.L('SetRemark'),
+                  value: _remarkName.isNotEmpty ? _remarkName : context.L('NotSet'),
                   onTap: _editRemark,
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildSettingTile(
                   icon: Icons.share_outlined,
-                  label: '推荐给同事',
+                  label: context.L('RecommendToColleagues'),
                   onTap: _shareUser,
                 ),
               ],
@@ -70,20 +70,20 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
               children: [
                 _buildSettingTile(
                   icon: Icons.security_outlined,
-                  label: '权限设置',
+                  label: context.L('PermissionSettings'),
                   onTap: () => _showComingSoon('权限设置'),
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildSettingTile(
                   icon: Icons.block_outlined,
-                  label: '加入黑名单',
+                  label: context.L('AddToBlacklist'),
                   textColor: const Color(0xFFFF4D4F),
                   onTap: () => _showComingSoon('黑名单'),
                 ),
                 const Divider(height: 1, indent: 56),
                 _buildSettingTile(
                   icon: Icons.flag_outlined,
-                  label: '举报',
+                  label: context.L('Report'),
                   textColor: const Color(0xFFFF4D4F),
                   onTap: () => _showComingSoon('举报'),
                 ),
@@ -137,7 +137,7 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('设置备注'),
+        title: Text(context.L('SetRemark')),
         content: TextField(
           controller: controller,
           maxLength: 32,
@@ -150,11 +150,11 @@ class _UserSettingsPageState extends ConsumerState<UserSettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('取消'),
+            child: Text(context.L('Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('保存'),
+            child: Text(context.L('Save')),
           ),
         ],
       ),

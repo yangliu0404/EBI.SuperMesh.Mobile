@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'hold_to_talk_button.dart';
 
 /// Input bar with text field, attachment buttons, and emoji picker.
@@ -214,8 +215,8 @@ class ChatInputBarState extends State<ChatInputBar> {
                               }
                             },
                             textInputAction: TextInputAction.send,
-                            decoration: const InputDecoration(
-                              hintText: 'Type a message...',
+                            decoration: InputDecoration(
+                              hintText: context.L('TypeAMessage'),
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -331,51 +332,51 @@ class ChatInputBarState extends State<ChatInputBar> {
 
   Widget _buildAttachmentBar() {
     final List<Widget> items = [
-      _attachmentOption(Icons.photo_library, '相册', () {
+      _attachmentOption(Icons.photo_library, context.L('Photos'), () {
         widget.onPickPhotos?.call();
         setState(() => _showAttachments = false);
       }),
-      _attachmentOption(Icons.camera_alt, '拍摄', () {
+      _attachmentOption(Icons.camera_alt, context.L('Camera'), () {
         widget.onPickCamera?.call();
         setState(() => _showAttachments = false);
       }),
-      _attachmentOption(Icons.videocam, '视频', () {
+      _attachmentOption(Icons.videocam, context.L('Video'), () {
         widget.onPickVideo?.call();
         setState(() => _showAttachments = false);
       }),
-      _attachmentOption(Icons.attach_file, '文件', () {
+      _attachmentOption(Icons.attach_file, context.L('File'), () {
         widget.onPickFile?.call();
         setState(() => _showAttachments = false);
       }),
-      _attachmentOption(Icons.phone_in_talk, '语音通话', () {
+      _attachmentOption(Icons.phone_in_talk, context.L('VoiceCall'), () {
         setState(() => _showAttachments = false);
         widget.onVoiceCall?.call();
       }),
-      _attachmentOption(Icons.video_call, '视频通话', () {
+      _attachmentOption(Icons.video_call, context.L('VideoCall'), () {
         setState(() => _showAttachments = false);
         widget.onVideoCall?.call();
       }),
-      _attachmentOption(Icons.groups, '会议', () {
+      _attachmentOption(Icons.groups, context.L('Meeting'), () {
         setState(() => _showAttachments = false);
         widget.onMeeting?.call();
       }),
-      _attachmentOption(Icons.location_on, '位置', () {
+      _attachmentOption(Icons.location_on, context.L('Location'), () {
         setState(() => _showAttachments = false);
         // TODO: Placeholder for location
       }),
-      _attachmentOption(Icons.person, '名片', () {
+      _attachmentOption(Icons.person, context.L('BusinessCard'), () {
         setState(() => _showAttachments = false);
         // TODO: Placeholder for contact card
       }),
-      _attachmentOption(Icons.bolt, '快捷回复', () {
+      _attachmentOption(Icons.bolt, context.L('QuickReply'), () {
         setState(() => _showAttachments = false);
         // TODO: Placeholder for quick reply
       }),
-      _attachmentOption(Icons.bookmark, '收藏', () {
+      _attachmentOption(Icons.bookmark, context.L('Favorites'), () {
         setState(() => _showAttachments = false);
         // TODO: Placeholder for favorites
       }),
-      _attachmentOption(Icons.monetization_on, '转账', () {
+      _attachmentOption(Icons.monetization_on, context.L('Transfer'), () {
         setState(() => _showAttachments = false);
         // TODO: Placeholder for monetary transfer
       }),
@@ -470,7 +471,16 @@ class ChatInputBarState extends State<ChatInputBar> {
             ),
           ),
           const SizedBox(height: 6),
-          Text(label, style: EbiTextStyles.labelSmall),
+          SizedBox(
+            width: 70,
+            child: Text(
+              label,
+              style: EbiTextStyles.labelSmall,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

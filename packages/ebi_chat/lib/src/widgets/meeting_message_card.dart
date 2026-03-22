@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/models/meeting_models.dart';
 import 'package:ebi_chat/src/providers/meeting_providers.dart';
@@ -38,7 +39,7 @@ class _MeetingMessageCardState extends ConsumerState<MeetingMessageCard> {
   }
 
   // Support both PascalCase (from web/backend) and camelCase keys
-  String get _title => (_meetingData?['MeetingTitle'] ?? _meetingData?['title'] ?? widget.message.content) as String? ?? '会议邀请';
+  String _getTitle(BuildContext context) => (_meetingData?['MeetingTitle'] ?? _meetingData?['title'] ?? widget.message.content) as String? ?? context.L('MeetingInvitation');
   String get _meetingNo => (_meetingData?['MeetingNo'] ?? _meetingData?['meetingNo']) as String? ?? '';
   String get _meetingId => (_meetingData?['MeetingId'] ?? _meetingData?['meetingId']) as String? ?? '';
   bool get _hasPassword => (_meetingData?['HasPassword'] ?? _meetingData?['hasPassword']) as bool? ?? false;
@@ -109,7 +110,7 @@ class _MeetingMessageCardState extends ConsumerState<MeetingMessageCard> {
               ),
               const SizedBox(width: 6),
               Text(
-                isScheduled ? '预约会议' : '即时会议',
+                isScheduled ? context.L('ScheduledMeeting') : context.L('InstantMeeting'),
                 style: TextStyle(
                   fontSize: 12,
                   color: widget.isMe ? Colors.white70 : EbiColors.textSecondary,
@@ -120,7 +121,7 @@ class _MeetingMessageCardState extends ConsumerState<MeetingMessageCard> {
           const SizedBox(height: 8),
           // Title
           Text(
-            _title,
+            _getTitle(context),
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,

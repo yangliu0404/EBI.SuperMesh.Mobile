@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 import 'terms_of_service_page.dart';
 import 'privacy_policy_page.dart';
@@ -27,12 +28,12 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // ── App Info Card ──
-                _buildInfoCard(),
+                _buildInfoCard(context),
 
                 const SizedBox(height: 16),
 
                 // ── Features Card ──
-                _buildFeaturesCard(),
+                _buildFeaturesCard(context),
 
                 const SizedBox(height: 16),
 
@@ -42,7 +43,7 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 // ── Footer ──
-                _buildFooter(),
+                _buildFooter(context),
 
                 const SizedBox(height: 40),
               ]),
@@ -115,7 +116,7 @@ class AboutPage extends StatelessWidget {
 
           // ── Tagline ──
           Text(
-            'Client Collaboration Portal',
+            context.L('ClientCollaborationPortal'),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -150,7 +151,7 @@ class AboutPage extends StatelessWidget {
   }
 
   // ── App Info Card ──
-  Widget _buildInfoCard() {
+  Widget _buildInfoCard(BuildContext context) {
     return EbiCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(20),
@@ -170,7 +171,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'About MeshPortal',
+                context.L('AboutMeshPortal'),
                 style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
               ),
             ],
@@ -191,7 +192,7 @@ class AboutPage extends StatelessWidget {
   }
 
   // ── Features Card ──
-  Widget _buildFeaturesCard() {
+  Widget _buildFeaturesCard(BuildContext context) {
     return EbiCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(20),
@@ -212,7 +213,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Key Features',
+                context.L('KeyFeatures'),
                 style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
               ),
             ],
@@ -221,32 +222,32 @@ class AboutPage extends StatelessWidget {
           _featureItem(
             Icons.inventory_2_outlined,
             const Color(0xFF3B82F6),
-            'Order Tracking',
-            'Monitor order status and shipment progress',
+            context.L('OrderTracking'),
+            context.L('OrderTrackingDescription'),
           ),
           _featureItem(
             Icons.receipt_long_outlined,
             const Color(0xFFF59E0B),
-            'Quotation Management',
-            'Request and review quotes in real time',
+            context.L('QuotationManagement'),
+            context.L('QuotationManagementDescription'),
           ),
           _featureItem(
             Icons.chat_outlined,
             const Color(0xFF22C55E),
-            'Direct Communication',
-            'Chat with your dedicated account team',
+            context.L('DirectCommunication'),
+            context.L('DirectCommunicationDescription'),
           ),
           _featureItem(
             Icons.language,
             const Color(0xFF14B8A6),
-            'Multi-language Support',
-            'Seamless localization across regions',
+            context.L('MultiLanguageSupport'),
+            context.L('MultiLanguageSupportDescription'),
           ),
           _featureItem(
             Icons.security_outlined,
             const Color(0xFFEF4444),
-            'Enterprise Security',
-            'Multi-tenant architecture with ABP framework',
+            context.L('EnterpriseSecurity'),
+            context.L('EnterpriseSecurityDescription'),
             isLast: true,
           ),
         ],
@@ -311,7 +312,7 @@ class AboutPage extends StatelessWidget {
           _legalTile(
             Icons.description_outlined,
             const Color(0xFF14B8A6),
-            'Terms of Service',
+            context.L('TermsOfService'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
@@ -322,7 +323,7 @@ class AboutPage extends StatelessWidget {
           _legalTile(
             Icons.policy_outlined,
             const Color(0xFF3B82F6),
-            'Privacy Policy',
+            context.L('PrivacyPolicy'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
@@ -358,7 +359,7 @@ class AboutPage extends StatelessWidget {
   }
 
   // ── Footer ──
-  Widget _buildFooter() {
+  Widget _buildFooter(BuildContext context) {
     return Column(
       children: [
         // ── Powered By ──
@@ -372,7 +373,7 @@ class AboutPage extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'Powered by SuperMesh',
+              context.L('PoweredBySuperMesh'),
               style: EbiTextStyles.labelSmall.copyWith(
                 color: EbiColors.textHint,
                 letterSpacing: 0.5,

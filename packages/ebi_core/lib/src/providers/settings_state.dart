@@ -1,16 +1,49 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ebi_models/ebi_models.dart';
 
-/// Supported app languages.
+/// Supported app languages with ABP culture names.
 enum AppLanguage {
-  english('English', 'en'),
-  chinese('中文', 'zh'),
-  japanese('日本語', 'ja'),
-  korean('한국어', 'ko');
+  english('English', 'en', 'en'),
+  chineseSimplified('简体中文', 'zh-Hans', 'zh'),
+  chineseTraditional('繁體中文', 'zh-Hant', 'zh'),
+  japanese('日本語', 'ja', 'ja'),
+  korean('한국어', 'ko', 'ko');
 
+  /// Display label.
   final String label;
-  final String code;
-  const AppLanguage(this.label, this.code);
+
+  /// ABP culture name (used in API requests).
+  final String cultureName;
+
+  /// ISO 639-1 language code (used for Locale).
+  final String languageCode;
+
+  const AppLanguage(this.label, this.cultureName, this.languageCode);
+
+  /// Get Flutter Locale.
+  Locale get locale {
+    final parts = cultureName.split('-');
+    if (parts.length >= 2) {
+      return Locale.fromSubtags(
+        languageCode: parts[0],
+        scriptCode: parts.sublist(1).join('-'),
+      );
+    }
+    return Locale(parts[0]);
+  }
+
+  /// Find by culture name, returns english as default.
+  static AppLanguage fromCultureName(String cultureName) {
+    return AppLanguage.values.firstWhere(
+      (l) => l.cultureName == cultureName,
+      orElse: () => AppLanguage.english,
+    );
+  }
+
+  /// Backward compatibility alias.
+  String get code => cultureName;
 }
 
 /// Appearance mode.
@@ -86,12 +119,37 @@ class SettingsState {
   }
 }
 
-/// Manages settings state (in-memory mock, no persistence yet).
+/// SharedPreferences key for persisted language.
+const _kLanguageKey = 'app_language_culture';
+
+/// Manages settings state with persistence.
 class SettingsNotifier extends StateNotifier<SettingsState> {
   SettingsNotifier() : super(const SettingsState());
 
+  /// Initialize from persisted storage.
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedCulture = prefs.getString(_kLanguageKey);
+    if (savedCulture != null) {
+      final lang = AppLanguage.fromCultureName(savedCulture);
+      state = state.copyWith(language: lang);
+    }
+  }
+
   void setLanguage(AppLanguage language) {
     state = state.copyWith(language: language);
+    _persistLanguage(language.cultureName);
+  }
+
+  /// Set language by ABP culture name string.
+  void setLanguageByCulture(String cultureName) {
+    final lang = AppLanguage.fromCultureName(cultureName);
+    setLanguage(lang);
+  }
+
+  Future<void> _persistLanguage(String cultureName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kLanguageKey, cultureName);
   }
 
   void setAppearance(AppAppearance appearance) {

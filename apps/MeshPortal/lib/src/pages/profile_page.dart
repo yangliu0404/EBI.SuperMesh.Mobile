@@ -39,35 +39,35 @@ class ProfilePage extends ConsumerWidget {
           padding: EdgeInsets.zero,
           children: [
             // ── Curved Gradient Header + Floating Stats Card ──
-            _buildHeaderWithStats(context, user),
+            _buildHeaderWithStats(context, ref, user),
 
             const SizedBox(height: 12),
 
             // ── PERSONAL ──
-            _sectionHeader('PERSONAL'),
+            _sectionHeader(ref.L('Personal')),
             _menuCard(context, [
               _MenuTile(
                 icon: Icons.person_outline,
                 color: _accent,
-                title: 'Edit Profile',
+                title: ref.L('EditProfile'),
                 onTap: () => _push(context, const EditProfilePage()),
               ),
               _MenuTile(
                 icon: Icons.qr_code,
                 color: _accent,
-                title: 'My QR Code',
+                title: ref.L('MyQRCode'),
                 onTap: () => _push(
                     context, const ComingSoonPage(title: 'My QR Code')),
               ),
             ]),
 
             // ── SETTINGS ──
-            _sectionHeader('SETTINGS'),
+            _sectionHeader(ref.L('Settings')),
             _menuCard(context, [
               _MenuTile(
                 icon: Icons.language,
                 color: const Color(0xFF3B82F6),
-                title: 'Language',
+                title: ref.L('Language'),
                 trailing: settings.language.label,
                 onTap: () =>
                     _push(context, const LanguageSettingsPage()),
@@ -75,14 +75,14 @@ class ProfilePage extends ConsumerWidget {
               _MenuTile(
                 icon: Icons.notifications_outlined,
                 color: const Color(0xFFF59E0B),
-                title: 'Notifications',
+                title: ref.L('Notifications'),
                 onTap: () =>
                     _push(context, const NotificationSettingsPage()),
               ),
               _MenuTile(
                 icon: Icons.palette_outlined,
                 color: const Color(0xFF8B5CF6),
-                title: 'Appearance',
+                title: ref.L('Appearance'),
                 trailing: settings.appearance.label,
                 onTap: () =>
                     _push(context, const AppearanceSettingsPage()),
@@ -90,83 +90,83 @@ class ProfilePage extends ConsumerWidget {
               _MenuTile(
                 icon: Icons.lock_outline,
                 color: const Color(0xFF14B8A6),
-                title: 'Privacy',
+                title: ref.L('Privacy'),
                 onTap: () =>
                     _push(context, const ComingSoonPage(title: 'Privacy')),
               ),
               _MenuTile(
                 icon: Icons.storage_outlined,
                 color: const Color(0xFF6B7280),
-                title: 'Data & Storage',
+                title: ref.L('DataAndStorage'),
                 onTap: () => _push(
                     context, const ComingSoonPage(title: 'Data & Storage')),
               ),
             ]),
 
             // ── ACCOUNT & SECURITY ──
-            _sectionHeader('ACCOUNT & SECURITY'),
+            _sectionHeader(ref.L('AccountAndSecurity')),
             _menuCard(context, [
               _MenuTile(
                 icon: Icons.key_outlined,
                 color: const Color(0xFFF59E0B),
-                title: 'Change Password',
+                title: ref.L('ChangePassword'),
                 onTap: () => _push(
                     context, const ComingSoonPage(title: 'Change Password')),
               ),
               _MenuTile(
                 icon: Icons.shield_outlined,
                 color: const Color(0xFF22C55E),
-                title: 'Security Settings',
+                title: ref.L('SecuritySettings'),
                 onTap: () => _push(context,
                     const ComingSoonPage(title: 'Security Settings')),
               ),
               _MenuTile(
                 icon: Icons.swap_horiz,
                 color: const Color(0xFF3B82F6),
-                title: 'Switch Account',
+                title: ref.L('SwitchAccount'),
                 onTap: () => _showSwitchAccount(context, ref),
               ),
               _MenuTile(
                 icon: Icons.delete_outline,
                 color: const Color(0xFFEF4444),
-                title: 'Delete Account',
-                onTap: () => _showDeleteAccount(context),
+                title: ref.L('DeleteAccount'),
+                onTap: () => _showDeleteAccount(context, ref),
               ),
             ]),
 
             // ── SUPPORT ──
-            _sectionHeader('SUPPORT'),
+            _sectionHeader(ref.L('Support')),
             _menuCard(context, [
               _MenuTile(
                 icon: Icons.help_outline,
                 color: _accent,
-                title: 'Help Center',
+                title: ref.L('HelpCenter'),
                 onTap: () => _push(
                     context, const ComingSoonPage(title: 'Help Center')),
               ),
               _MenuTile(
                 icon: Icons.feedback_outlined,
                 color: const Color(0xFF8B5CF6),
-                title: 'Feedback',
+                title: ref.L('Feedback'),
                 onTap: () =>
                     _push(context, const FeedbackPage()),
               ),
               _MenuTile(
                 icon: Icons.info_outline,
                 color: const Color(0xFF6B7280),
-                title: 'About',
+                title: ref.L('About'),
                 onTap: () => _push(context, const AboutPage()),
               ),
               _MenuTile(
                 icon: Icons.description_outlined,
                 color: const Color(0xFF14B8A6),
-                title: 'Terms of Service',
+                title: ref.L('TermsOfService'),
                 onTap: () => _push(context, const TermsOfServicePage()),
               ),
               _MenuTile(
                 icon: Icons.policy_outlined,
                 color: const Color(0xFF3B82F6),
-                title: 'Privacy Policy',
+                title: ref.L('PrivacyPolicy'),
                 onTap: () => _push(context, const PrivacyPolicyPage()),
               ),
             ]),
@@ -188,9 +188,9 @@ class ProfilePage extends ConsumerWidget {
                     ),
                   ),
                   onPressed: () => _confirmLogout(context, ref),
-                  child: const Text(
-                    'Sign Out',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  child: Text(
+                    ref.L('SignOut'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -216,7 +216,7 @@ class ProfilePage extends ConsumerWidget {
   }
 
   // ── Curved gradient header + floating stats card ──
-  Widget _buildHeaderWithStats(BuildContext context, User? user) {
+  Widget _buildHeaderWithStats(BuildContext context, WidgetRef ref, User? user) {
     final topPadding = MediaQuery.of(context).padding.top;
     const cardOverlap = 50.0;
 
@@ -348,16 +348,16 @@ class ProfilePage extends ConsumerWidget {
             ),
             child: Row(
               children: [
-                _statItem(Icons.inventory_2_outlined, '5', 'Orders',
+                _statItem(Icons.inventory_2_outlined, '5', ref.L('Orders'),
                     const Color(0xFF3B82F6)),
                 _verticalDivider(),
-                _statItem(Icons.local_shipping_outlined, '2', 'Shipping',
+                _statItem(Icons.local_shipping_outlined, '2', ref.L('Shipping'),
                     const Color(0xFF22C55E)),
                 _verticalDivider(),
-                _statItem(Icons.receipt_long_outlined, '3', 'Quotes',
+                _statItem(Icons.receipt_long_outlined, '3', ref.L('Quotes'),
                     const Color(0xFFF59E0B)),
                 _verticalDivider(),
-                _statItem(Icons.chat_outlined, '7', 'Messages',
+                _statItem(Icons.chat_outlined, '7', ref.L('Messages'),
                     const Color(0xFF8B5CF6)),
               ],
             ),
@@ -508,18 +508,18 @@ class ProfilePage extends ConsumerWidget {
   }
 
   // ── Delete Account ──
-  void _showDeleteAccount(BuildContext context) {
+  void _showDeleteAccount(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
+        title: Text(ref.L('DeleteAccount')),
+        content: Text(
+          ref.L('DeleteAccountConfirmation'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(ref.L('Cancel')),
           ),
           TextButton(
             onPressed: () {
@@ -528,7 +528,7 @@ class ProfilePage extends ConsumerWidget {
                   context, const ComingSoonPage(title: 'Delete Account'));
             },
             style: TextButton.styleFrom(foregroundColor: EbiColors.error),
-            child: const Text('Delete'),
+            child: Text(ref.L('Delete')),
           ),
         ],
       ),
@@ -540,12 +540,12 @@ class ProfilePage extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out?'),
+        title: Text(ref.L('SignOut')),
+        content: Text(ref.L('SignOutConfirmation')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(ref.L('Cancel')),
           ),
           TextButton(
             onPressed: () async {
@@ -554,7 +554,7 @@ class ProfilePage extends ConsumerWidget {
               onLogout?.call();
             },
             style: TextButton.styleFrom(foregroundColor: EbiColors.error),
-            child: const Text('Sign Out'),
+            child: Text(ref.L('SignOut')),
           ),
         ],
       ),

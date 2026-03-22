@@ -18,11 +18,15 @@ class ApiClient {
   /// The app should navigate to the login page.
   void Function()? onSessionExpired;
 
+  /// Returns the current language culture name for Accept-Language header.
+  String Function()? getLanguage;
+
   ApiClient({
     required this.clientId,
     required TokenStorage tokenStorage,
     required TenantStorage tenantStorage,
     this.onSessionExpired,
+    this.getLanguage,
   })  : _tokenStorage = tokenStorage,
         _tenantStorage = tenantStorage {
     _dio = Dio(
@@ -38,7 +42,7 @@ class ApiClient {
 
     _dio.interceptors.addAll([
       _TenantInterceptor(_tenantStorage),
-      _AcceptLanguageInterceptor(),
+      _AcceptLanguageInterceptor(this),
       _AuthInterceptor(
         tokenStorage: _tokenStorage,
         dio: _dio,
@@ -256,15 +260,19 @@ class _TenantInterceptor extends Interceptor {
   }
 }
 
-/// Injects `Accept-Language` header.
+/// Injects `Accept-Language` header from the current app language setting.
 class _AcceptLanguageInterceptor extends Interceptor {
+  final ApiClient _client;
+
+  _AcceptLanguageInterceptor(this._client);
+
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) {
-    // Default to zh-Hans; later this can read from a SettingsService.
-    options.headers['Accept-Language'] ??= 'zh-Hans';
+    final lang = _client.getLanguage?.call() ?? 'en';
+    options.headers['Accept-Language'] = lang;
     handler.next(options);
   }
 }

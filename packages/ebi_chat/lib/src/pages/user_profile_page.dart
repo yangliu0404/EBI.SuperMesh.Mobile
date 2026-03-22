@@ -52,15 +52,15 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: EbiLoading(message: '加载中...')),
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F5F5),
+        body: Center(child: EbiLoading(message: context.L('Loading'))),
       );
     }
 
     if (_userCard == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('用户信息')),
+        appBar: AppBar(title: Text(context.L('UserInfo'))),
         body: const EbiEmptyState(icon: Icons.person_off, title: '无法获取用户信息'),
       );
     }
@@ -284,10 +284,10 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.verified, size: 12, color: Color(0xFF3B82F6)),
-                          SizedBox(width: 4),
-                          Text('企业成员', style: TextStyle(fontSize: 11, color: Color(0xFF666666))),
+                        children: [
+                          const Icon(Icons.verified, size: 12, color: Color(0xFF3B82F6)),
+                          const SizedBox(width: 4),
+                          Text(context.L('EnterpriseMember'), style: const TextStyle(fontSize: 11, color: Color(0xFF666666))),
                         ],
                       ),
                     ),
@@ -302,7 +302,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                     const Text('💻', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
                     Text(
-                      card.online ? '在线' : '离线',
+                      card.online ? context.L('Online') : context.L('Offline'),
                       style: const TextStyle(fontSize: 14, color: Color(0xFF333333)),
                     ),
                   ],
@@ -316,9 +316,9 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                   children: [
                     Row(
                       children: [
-                        _smallActionButton(Icons.calendar_month, '日程安排', const Color(0xFF10B981)),
+                        _smallActionButton(Icons.calendar_month, context.L('Schedule'), const Color(0xFF10B981)),
                         const SizedBox(width: 16),
-                        _smallActionButton(Icons.group_outlined, '与TA的交集', const Color(0xFF3B82F6)),
+                        _smallActionButton(Icons.group_outlined, context.L('CommonConnections'), const Color(0xFF3B82F6)),
                       ],
                     ),
                     // Action Pill
@@ -330,9 +330,9 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
                           color: const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Text(
-                          '分享名片',
-                          style: TextStyle(
+                        child: Text(
+                          context.L('ShareCard'),
+                          style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF3B82F6),
@@ -500,7 +500,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
               flex: 3,
               child: _mainBottomButton(
                 icon: Icons.chat_bubble_outline,
-                label: '发消息',
+                label: context.L('SendMessage'),
                 onTap: () => Navigator.of(context).pop(card.userId),
                 primary: true,
               ),
@@ -511,7 +511,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
               flex: 2,
               child: _mainBottomButton(
                 icon: Icons.call_outlined,
-                label: '语音',
+                label: context.L('Voice'),
                 onTap: () {
                   ref.read(callStateProvider.notifier).startCall(
                     targetUserId: widget.userId,
@@ -530,7 +530,7 @@ class _UserProfilePageState extends ConsumerState<UserProfilePage> {
               flex: 2,
               child: _mainBottomButton(
                 icon: Icons.videocam_outlined,
-                label: '视频',
+                label: context.L('Video'),
                 onTap: () {
                   ref.read(callStateProvider.notifier).startCall(
                     targetUserId: widget.userId,

@@ -6,6 +6,7 @@ import 'package:ebi_core/src/auth/tenant_storage.dart';
 import 'package:ebi_core/src/config/app_config.dart';
 import 'package:ebi_core/src/network/api_client.dart';
 import 'package:ebi_core/src/providers/auth_state.dart';
+import 'package:ebi_core/src/providers/settings_providers.dart';
 
 /// Client ID provider — overridden per-app in main.dart.
 final clientIdProvider = Provider<String>((ref) {
@@ -31,6 +32,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
     clientId: clientId,
     tokenStorage: tokenStorage,
     tenantStorage: tenantStorage,
+    getLanguage: () => ref.read(settingsProvider).language.cultureName,
   );
 });
 

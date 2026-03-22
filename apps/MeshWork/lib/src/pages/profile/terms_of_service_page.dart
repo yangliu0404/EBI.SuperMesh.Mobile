@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Terms of Service page for MeshWork.
 class TermsOfServicePage extends StatelessWidget {
@@ -11,7 +12,7 @@ class TermsOfServicePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EbiColors.bgMeshWork,
-      appBar: const EbiAppBar(title: 'Terms of Service'),
+      appBar: EbiAppBar(title: context.L('TermsOfService')),
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [

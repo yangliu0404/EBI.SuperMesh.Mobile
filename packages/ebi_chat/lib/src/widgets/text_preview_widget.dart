@@ -5,6 +5,7 @@ import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_markdown_community/flutter_markdown.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/models/file_preview_info.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 
@@ -114,7 +115,7 @@ class _TextPreviewWidgetState extends ConsumerState<TextPreviewWidget> {
                 _loadContent();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(context.L('Retry')),
             ),
           ],
         ),

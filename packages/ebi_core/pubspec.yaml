@@ -16,6 +16,7 @@ dependencies:
   logger: ^2.5.0
   connectivity_plus: ^6.1.4
   flutter_riverpod: ^2.6.1
+  shared_preferences: ^2.3.4
   ebi_models:
     path: ../ebi_models
 

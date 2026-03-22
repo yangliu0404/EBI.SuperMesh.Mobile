@@ -152,7 +152,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              '转发给...',
+              context.L('ForwardTo'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -166,10 +166,10 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
             labelColor: EbiColors.primaryBlue,
             unselectedLabelColor: EbiColors.textSecondary,
             indicatorColor: EbiColors.primaryBlue,
-            tabs: const [
-              Tab(text: '最近会话'),
-              Tab(text: '联系人'),
-              Tab(text: '群组'),
+            tabs: [
+              Tab(text: context.L('RecentConversations')),
+              Tab(text: context.L('Contacts')),
+              Tab(text: context.L('Groups')),
             ],
           ),
           // Search
@@ -178,7 +178,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: '搜索...',
+                hintText: context.L('Search'),
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
                 contentPadding:
@@ -215,7 +215,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
     if (rooms.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? '无匹配结果' : '暂无最近会话',
+          _searchQuery.isNotEmpty ? context.L('NoMatchingResults') : context.L('NoRecentConversations'),
           style: TextStyle(color: EbiColors.textSecondary),
         ),
       );
@@ -252,7 +252,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
     if (users.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? '无匹配用户' : '输入关键字搜索联系人',
+          _searchQuery.isNotEmpty ? context.L('NoMatchingUsers') : context.L('Contacts'),
           style: TextStyle(color: EbiColors.textSecondary),
         ),
       );
@@ -287,7 +287,7 @@ class _ForwardSheetContentState extends State<_ForwardSheetContent>
     if (rooms.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? '无匹配结果' : '暂无群组',
+          _searchQuery.isNotEmpty ? context.L('NoMatchingResults') : context.L('NoGroups'),
           style: TextStyle(color: EbiColors.textSecondary),
         ),
       );

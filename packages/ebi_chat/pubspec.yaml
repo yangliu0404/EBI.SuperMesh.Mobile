@@ -19,7 +19,7 @@ dependencies:
   ebi_core:
     path: ../ebi_core
   cached_network_image: ^3.4.1
-  intl: ^0.19.0
+  intl: ">=0.19.0"
   uuid: ^4.5.1
   signalr_netcore: ^1.4.4
   url_launcher: ^6.2.0

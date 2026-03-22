@@ -83,11 +83,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Gradient header
+            // Gradient header with language switcher
             Container(
               width: double.infinity,
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 40,
+                top: MediaQuery.of(context).padding.top + 12,
                 bottom: 40,
               ),
               decoration: const BoxDecoration(
@@ -107,6 +107,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               child: Column(
                 children: [
+                  // Language switcher at top-right
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: _buildLanguageSwitcher(),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Image.asset(
                     'assets/images/ebi_logo.png',
                     width: 160,
@@ -150,7 +159,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     // Username
                     EbiTextField(
                       controller: _usernameController,
-                      hintText: 'Email or Username',
+                      hintText: ref.L('EmailOrUsername'),
                       prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
@@ -162,7 +171,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     // Password
                     EbiTextField(
                       controller: _passwordController,
-                      hintText: 'Password',
+                      hintText: ref.L('Password'),
                       prefixIcon: Icons.lock_outline,
                       obscureText: _obscurePassword,
                       textInputAction: TextInputAction.done,
@@ -201,7 +210,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
                     // Sign In button
                     EbiButton(
-                      text: 'Sign In',
+                      text: ref.L('SignIn'),
                       width: double.infinity,
                       isLoading: authState.isLoading,
                       onPressed: authState.isLoading ? null : _login,
@@ -217,7 +226,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           padding:
                               const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'or continue with',
+                            ref.L('OrContinueWith'),
                             style: EbiTextStyles.bodySmall
                                 .copyWith(color: EbiColors.textHint),
                           ),
@@ -258,7 +267,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           );
                         },
                         child: Text(
-                          'Forgot password?',
+                          ref.L('ForgotPassword'),
                           style: EbiTextStyles.bodySmall.copyWith(
                             color: EbiColors.primaryBlue,
                           ),
@@ -281,7 +290,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Expanded(
           child: EbiTextField(
             controller: _tenantController,
-            hintText: 'Tenant Name (empty = Host)',
+            hintText: ref.L('TenantNameHint'),
             prefixIcon: Icons.business,
             textInputAction: TextInputAction.next,
             onChanged: (_) {
@@ -295,12 +304,124 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         SizedBox(
           height: 48,
           child: EbiButton(
-            text: _tenantLoading ? '...' : 'Verify',
+            text: _tenantLoading ? '...' : ref.L('Verify'),
             onPressed: _tenantLoading ? null : _lookupTenant,
             isOutlined: _tenantVerified,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLanguageSwitcher() {
+    final settings = ref.watch(settingsProvider);
+    return GestureDetector(
+      onTap: () => _showLanguagePicker(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: EbiColors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: EbiColors.white.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.language, size: 16, color: EbiColors.white),
+            const SizedBox(width: 6),
+            Text(
+              settings.language.label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: EbiColors.white,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, size: 16, color: EbiColors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguagePicker() {
+    final l10n = ref.read(localizationProvider);
+    final backendLanguages = l10n.languages;
+    final currentCulture = ref.read(settingsProvider).language.cultureName;
+
+    // Deduplicate by cultureName.
+    final langs = backendLanguages.isNotEmpty
+        ? {for (final l in backendLanguages) l.cultureName: l}.values.toList()
+        : null;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final itemCount =
+            langs?.length ?? AppLanguage.values.length;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    l10n.L('Language'),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: itemCount,
+                    itemBuilder: (_, i) {
+                      final String cultureName;
+                      final String displayName;
+                      if (langs != null) {
+                        cultureName = langs[i].cultureName;
+                        displayName = langs[i].displayName;
+                      } else {
+                        cultureName = AppLanguage.values[i].cultureName;
+                        displayName = AppLanguage.values[i].label;
+                      }
+                      return ListTile(
+                        title: Text(displayName),
+                        subtitle: Text(cultureName,
+                            style: const TextStyle(fontSize: 12)),
+                        trailing: currentCulture == cultureName
+                            ? const Icon(Icons.check,
+                                color: EbiColors.primaryBlue)
+                            : null,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          ref
+                              .read(localizationProvider.notifier)
+                              .changeLanguage(cultureName);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -355,14 +476,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           color: const Color(0xFF07C160),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_rounded, color: EbiColors.white, size: 20),
-            SizedBox(width: 8),
+            const Icon(Icons.chat_rounded, color: EbiColors.white, size: 20),
+            const SizedBox(width: 8),
             Text(
-              'Continue with WeChat',
-              style: TextStyle(
+              ref.L('ContinueWithWeChat'),
+              style: const TextStyle(
                 color: EbiColors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

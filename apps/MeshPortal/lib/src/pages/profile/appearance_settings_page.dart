@@ -12,8 +12,8 @@ class AppearanceSettingsPage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: const EbiAppBar(
-        title: 'Appearance',
+      appBar: EbiAppBar(
+        title: ref.L('Appearance'),
         backgroundColor: EbiColors.secondaryCyan,
       ),
       body: ListView.separated(

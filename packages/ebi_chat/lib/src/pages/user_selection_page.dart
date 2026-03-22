@@ -9,19 +9,19 @@ import 'package:ebi_chat/src/pages/session_user_selection_page.dart';
 ///
 /// Returns a `List<Map<String, dynamic>>` of selected users when confirmed.
 class UserSelectionPage extends ConsumerStatefulWidget {
-  final String title;
+  final String? title;
   final bool multiSelect;
   final Set<String>? initialSelectedIds;
   final Set<String>? disabledIds; // Uids that cannot be deselected or selected
-  final String confirmButtonText;
+  final String? confirmButtonText;
 
   const UserSelectionPage({
     super.key,
-    this.title = '选择联系人',
+    this.title,
     this.multiSelect = true,
     this.initialSelectedIds,
     this.disabledIds,
-    this.confirmButtonText = '发起群聊',
+    this.confirmButtonText,
   });
 
   @override
@@ -142,7 +142,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
+        title: Text(widget.title ?? context.L('SelectContacts'), style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -157,7 +157,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
           _buildTopSection(),
           Expanded(
             child: _isLoading && _userResults.isEmpty
-                ? const Center(child: EbiLoading(message: '加载中...'))
+                ? Center(child: EbiLoading(message: context.L('Loading')))
                 : _buildUserList(),
           ),
           if (widget.multiSelect) _buildBottomBar(),
@@ -202,7 +202,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Text('已选择 ($selectedCount)', style: const TextStyle(fontSize: 16, color: Color(0xFF111111))),
+              Text('${context.L('Selected')} ($selectedCount)', style: const TextStyle(fontSize: 16, color: Color(0xFF111111))),
               const SizedBox(width: 12),
               Expanded(
                 child: SizedBox(
@@ -246,7 +246,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
                   minimumSize: Size.zero,
                 ),
                 onPressed: selectedCount > 0 ? _confirmSelection : null,
-                child: Text(widget.confirmButtonText, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
+                child: Text(widget.confirmButtonText ?? context.L('CreateGroupChat'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal)),
               ),
             ],
           ),
@@ -276,12 +276,12 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
-                    decoration: const InputDecoration(
-                      hintText: '搜索',
+                    decoration: InputDecoration(
+                      hintText: context.L('Search'),
                       border: InputBorder.none,
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 6),
-                      hintStyle: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                      hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
                     ),
                     style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
                   ),
@@ -301,7 +301,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildCategoryIcon(Icons.chat_bubble_outline, '按会话选', onTap: () async {
+              _buildCategoryIcon(Icons.chat_bubble_outline, context.L('ByConversation'), onTap: () async {
                 final selected = await Navigator.of(context).push<List<Map<String, dynamic>>>(
                   MaterialPageRoute(
                     builder: (_) => SessionUserSelectionPage(
@@ -319,9 +319,9 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
                   });
                 }
               }),
-              _buildCategoryIcon(Icons.account_tree_outlined, '按架构选'),
-              _buildCategoryIcon(Icons.cell_wifi, '面对面建群'),
-              _buildCategoryIcon(Icons.people_outline, '按群聊选'),
+              _buildCategoryIcon(Icons.account_tree_outlined, context.L('ByOrganization')),
+              _buildCategoryIcon(Icons.cell_wifi, context.L('FaceToFaceGroup')),
+              _buildCategoryIcon(Icons.people_outline, context.L('ByGroup')),
             ],
           ),
           const SizedBox(height: 10),
@@ -359,7 +359,7 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
     if (!_isLoading && _userResults.isEmpty) {
       return Center(
         child: Text(
-          _searchQuery.isNotEmpty ? '无匹配联系人' : '暂无联系人',
+          _searchQuery.isNotEmpty ? context.L('NoMatchingContacts') : context.L('NoContacts'),
           style: const TextStyle(color: Color(0xFF999999)),
         ),
       );
@@ -452,11 +452,11 @@ class _UserSelectionPageState extends ConsumerState<UserSelectionPage> {
                     ),
                   ),
                   if (isDisabled)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8.0),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
                       child: Text(
-                        '已在群聊',
-                        style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+                        context.L('AlreadyInGroup'),
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
                       ),
                     ),
                 ],

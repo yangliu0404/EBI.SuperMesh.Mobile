@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Terms of Service page for MeshPortal.
 class TermsOfServicePage extends StatelessWidget {
@@ -11,8 +12,8 @@ class TermsOfServicePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EbiColors.bgMeshPortal,
-      appBar: const EbiAppBar(
-        title: 'Terms of Service',
+      appBar: EbiAppBar(
+        title: context.L('TermsOfService'),
         backgroundColor: EbiColors.secondaryCyan,
       ),
       body: ListView(
@@ -36,12 +37,12 @@ class TermsOfServicePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Terms of Service',
+                  context.L('TermsOfService'),
                   style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Last updated: January 2025',
+                  context.L('LastUpdatedJanuary2025'),
                   style: EbiTextStyles.bodySmall
                       .copyWith(color: EbiColors.textHint),
                 ),
@@ -130,13 +131,13 @@ class TermsOfServicePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Questions?',
+                        context.L('Questions'),
                         style: EbiTextStyles.labelLarge
                             .copyWith(color: EbiColors.darkNavy),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Contact us at legal@e-bi.com',
+                        context.L('ContactUsAtLegal'),
                         style: EbiTextStyles.bodySmall
                             .copyWith(color: EbiColors.textSecondary),
                       ),

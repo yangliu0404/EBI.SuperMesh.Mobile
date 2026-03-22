@@ -14,34 +14,34 @@ class NotificationSettingsPage extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      appBar: const EbiAppBar(title: 'Notifications'),
+      appBar: EbiAppBar(title: ref.L('Notifications')),
       body: ListView(
         children: [
           const SizedBox(height: 8),
-          _sectionHeader('GENERAL'),
+          _sectionHeader(ref.L('General')),
           EbiCard(
             padding: EdgeInsets.zero,
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Push Notifications'),
-                  subtitle: const Text('Receive push notifications'),
+                  title: Text(ref.L('PushNotifications')),
+                  subtitle: Text(ref.L('ReceivePushNotifications')),
                   value: prefs.pushEnabled,
                   activeColor: EbiColors.primaryBlue,
                   onChanged: (v) => notifier.setPushEnabled(v),
                 ),
                 const Divider(height: 1, indent: 16),
                 SwitchListTile(
-                  title: const Text('Email Notifications'),
-                  subtitle: const Text('Receive email notifications'),
+                  title: Text(ref.L('EmailNotifications')),
+                  subtitle: Text(ref.L('ReceiveEmailNotifications')),
                   value: prefs.emailEnabled,
                   activeColor: EbiColors.primaryBlue,
                   onChanged: (v) => notifier.setEmailEnabled(v),
                 ),
                 const Divider(height: 1, indent: 16),
                 SwitchListTile(
-                  title: const Text('Sound'),
-                  subtitle: const Text('Play sound for notifications'),
+                  title: Text(ref.L('Sound')),
+                  subtitle: Text(ref.L('PlaySoundForNotifications')),
                   value: prefs.soundEnabled,
                   activeColor: EbiColors.primaryBlue,
                   onChanged: (v) => notifier.setSoundEnabled(v),
@@ -50,7 +50,7 @@ class NotificationSettingsPage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _sectionHeader('NOTIFICATION TYPES'),
+          _sectionHeader(ref.L('NotificationTypes')),
           EbiCard(
             padding: EdgeInsets.zero,
             child: Column(
@@ -62,7 +62,7 @@ class NotificationSettingsPage extends ConsumerWidget {
                   children: [
                     if (index > 0) const Divider(height: 1, indent: 16),
                     SwitchListTile(
-                      title: Text(_typeLabel(type)),
+                      title: Text(_typeLabel(type, ref)),
                       value: enabled,
                       activeColor: EbiColors.primaryBlue,
                       onChanged: (v) =>
@@ -92,22 +92,22 @@ class NotificationSettingsPage extends ConsumerWidget {
     );
   }
 
-  String _typeLabel(NotificationType type) {
+  String _typeLabel(NotificationType type, WidgetRef ref) {
     switch (type) {
       case NotificationType.order:
-        return 'Orders';
+        return ref.L('Orders');
       case NotificationType.quotation:
-        return 'Quotations';
+        return ref.L('Quotations');
       case NotificationType.production:
-        return 'Production';
+        return ref.L('Production');
       case NotificationType.shipping:
-        return 'Shipping';
+        return ref.L('Shipping');
       case NotificationType.approval:
-        return 'Approvals';
+        return ref.L('Approvals');
       case NotificationType.chat:
-        return 'Chat Messages';
+        return ref.L('ChatMessages');
       case NotificationType.system:
-        return 'System';
+        return ref.L('System');
     }
   }
 }

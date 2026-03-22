@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/chat_room.dart';
 
@@ -7,14 +8,14 @@ class SessionUserSelectionPage extends ConsumerStatefulWidget {
   final bool multiSelect;
   final List<String>? initialSelectedIds;
   final List<String>? disabledIds;
-  final String title;
+  final String? title;
 
   const SessionUserSelectionPage({
     super.key,
     this.multiSelect = true,
     this.initialSelectedIds,
     this.disabledIds,
-    this.title = '按会话选',
+    this.title,
   });
 
   @override
@@ -70,7 +71,7 @@ class _SessionUserSelectionPageState extends ConsumerState<SessionUserSelectionP
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title, style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
+        title: Text(widget.title ?? context.L('ByConversation'), style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -87,7 +88,7 @@ class _SessionUserSelectionPageState extends ConsumerState<SessionUserSelectionP
               data: (rooms) {
                 final directRooms = rooms.where((r) => r.type == ChatRoomType.direct).toList();
                 if (directRooms.isEmpty) {
-                  return const Center(child: Text('暂无私聊会话', style: TextStyle(color: Color(0xFF999999))));
+                  return Center(child: Text(context.L('NoPrivateConversations'), style: const TextStyle(color: Color(0xFF999999))));
                 }
 
                 return ListView.builder(
@@ -161,11 +162,11 @@ class _SessionUserSelectionPageState extends ConsumerState<SessionUserSelectionP
                                 ),
                               ),
                               if (isDisabled)
-                                const Padding(
-                                  padding: EdgeInsets.only(left: 8.0),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8.0),
                                   child: Text(
-                                    '已在群聊',
-                                    style: TextStyle(fontSize: 13, color: Color(0xFF999999)),
+                                    context.L('AlreadyInGroup'),
+                                    style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
                                   ),
                                 ),
                             ],

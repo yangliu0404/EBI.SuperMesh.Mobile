@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Orders page for MeshPortal.
 class OrdersPage extends StatelessWidget {
@@ -8,11 +9,11 @@ class OrdersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const EbiAppBar(title: 'My Orders', showBack: false),
-      body: const EbiEmptyState(
+      appBar: EbiAppBar(title: context.L('MyOrders'), showBack: false),
+      body: EbiEmptyState(
         icon: Icons.receipt_long_outlined,
-        title: 'No Orders',
-        subtitle: 'Your orders and quotations will appear here.',
+        title: context.L('NoOrders'),
+        subtitle: context.L('NoOrdersPortalDescription'),
       ),
     );
   }

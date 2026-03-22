@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/pages/group_settings_page.dart';
 import 'package:ebi_chat/src/pages/chat_detail_page.dart';
 
@@ -26,7 +27,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入群聊名称')),
+        SnackBar(content: Text(context.L('PleaseEnterGroupName'))),
       );
       return;
     }
@@ -74,7 +75,7 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('创建群聊', style: TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
+        title: Text(context.L('CreateGroupChat'), style: const TextStyle(fontSize: 18, color: Colors.black, fontWeight: FontWeight.w500)),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -91,8 +92,8 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text(
-                    '完成',
+                : Text(
+                    context.L('Done'),
                     style: TextStyle(
                       color: Color(0xFF0052D9),
                       fontWeight: FontWeight.w600,
@@ -117,8 +118,8 @@ class _CreateGroupPageState extends ConsumerState<CreateGroupPage> {
                 controller: _nameController,
                 autofocus: true,
                 maxLength: 20,
-                decoration: const InputDecoration(
-                  hintText: '起一个群名称...',
+                decoration: InputDecoration(
+                  hintText: context.L('EnterGroupName'),
                   border: InputBorder.none,
                   counterText: '',
                 ),

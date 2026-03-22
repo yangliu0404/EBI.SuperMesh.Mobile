@@ -27,13 +27,13 @@ class SwitchAccountSheet extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Text('Switch Account', style: EbiTextStyles.h3),
+          Text(ref.L('SwitchAccount'), style: EbiTextStyles.h3),
           const SizedBox(height: 8),
           if (tenants.isEmpty)
             Padding(
               padding: const EdgeInsets.all(32),
               child: Text(
-                'No other accounts available.',
+                ref.L('NoOtherAccounts'),
                 style: EbiTextStyles.bodyMedium.copyWith(
                   color: EbiColors.textSecondary,
                 ),

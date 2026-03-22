@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/widgets/chat_room_tile.dart';
@@ -31,7 +32,7 @@ class ChatRoomListPage extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: const EbiAppBar(title: 'Messages', showBack: false),
+      appBar: EbiAppBar(title: ref.L('Messages'), showBack: false),
       body: Column(
         children: [
           // Search bar
@@ -42,15 +43,15 @@ class ChatRoomListPage extends ConsumerWidget {
                 color: const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const TextField(
+              child: TextField(
                 decoration: InputDecoration(
-                  hintText: 'Search conversations...',
+                  hintText: ref.L('SearchConversations'),
                   prefixIcon:
-                      Icon(Icons.search, color: EbiColors.textHint, size: 20),
+                      const Icon(Icons.search, color: EbiColors.textHint, size: 20),
                   border: InputBorder.none,
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  hintStyle: TextStyle(color: EbiColors.textHint, fontSize: 14),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  hintStyle: const TextStyle(color: EbiColors.textHint, fontSize: 14),
                 ),
               ),
             ),
@@ -59,19 +60,19 @@ class ChatRoomListPage extends ConsumerWidget {
           // Content
           Expanded(
             child: roomsAsync.when(
-              loading: () => const EbiLoading(message: 'Loading messages...'),
+              loading: () => EbiLoading(message: ref.L('LoadingMessages')),
               error: (e, _) => Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     EbiEmptyState(
                       icon: Icons.error_outline,
-                      title: 'Failed to load',
+                      title: ref.L('FailedToLoad'),
                       subtitle: e.toString(),
                     ),
                     const SizedBox(height: 16),
                     EbiButton(
-                      text: 'Retry',
+                      text: ref.L('Retry'),
                       onPressed: () => ref.read(chatRoomsProvider.notifier).refresh(),
                     ),
                   ],
@@ -83,12 +84,12 @@ class ChatRoomListPage extends ConsumerWidget {
                 },
                 child: rooms.isEmpty
                     ? ListView(
-                        children: const [
-                          SizedBox(height: 120),
+                        children: [
+                          const SizedBox(height: 120),
                           EbiEmptyState(
                             icon: Icons.chat_bubble_outline,
-                            title: 'No Conversations',
-                            subtitle: 'Pull down to refresh',
+                            title: ref.L('NoConversations'),
+                            subtitle: ref.L('PullDownToRefresh'),
                           ),
                         ],
                       )
@@ -101,7 +102,7 @@ class ChatRoomListPage extends ConsumerWidget {
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                             child: Text(
-                              'Conversations',
+                              ref.L('Conversations'),
                               style: EbiTextStyles.labelSmall.copyWith(
                                 color: EbiColors.textHint,
                                 letterSpacing: 1.0,

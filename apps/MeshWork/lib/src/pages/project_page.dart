@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Project page placeholder.
 class ProjectPage extends StatelessWidget {
@@ -8,11 +9,11 @@ class ProjectPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const EbiAppBar(title: 'Project', showBack: false),
-      body: const EbiEmptyState(
+      appBar: EbiAppBar(title: context.L('Project'), showBack: false),
+      body: EbiEmptyState(
         icon: Icons.folder_outlined,
-        title: 'Project',
-        subtitle: 'Your projects will appear here.',
+        title: context.L('Project'),
+        subtitle: context.L('NoProjectsDescription'),
       ),
     );
   }

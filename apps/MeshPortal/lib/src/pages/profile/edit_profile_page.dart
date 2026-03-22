@@ -39,8 +39,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const EbiAppBar(
-        title: 'Edit Profile',
+      appBar: EbiAppBar(
+        title: ref.L('EditProfile'),
         backgroundColor: EbiColors.secondaryCyan,
       ),
       body: ListView(
@@ -49,32 +49,32 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           const SizedBox(height: 8),
           EbiTextField(
             controller: _nameController,
-            labelText: 'Name',
+            labelText: ref.L('Name'),
             prefixIcon: Icons.person_outline,
           ),
           const SizedBox(height: 16),
           EbiTextField(
             controller: _emailController,
-            labelText: 'Email',
+            labelText: ref.L('Email'),
             prefixIcon: Icons.email_outlined,
             enabled: false,
           ),
           const SizedBox(height: 16),
           EbiTextField(
             controller: _phoneController,
-            labelText: 'Phone',
+            labelText: ref.L('Phone'),
             prefixIcon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
           ),
           const SizedBox(height: 16),
           EbiTextField(
             controller: _companyController,
-            labelText: 'Company',
+            labelText: ref.L('Company'),
             prefixIcon: Icons.business_outlined,
           ),
           const SizedBox(height: 32),
           EbiButton(
-            text: 'Save Changes',
+            text: ref.L('SaveChanges'),
             width: double.infinity,
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(

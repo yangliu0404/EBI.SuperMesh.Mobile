@@ -21,16 +21,16 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
 
     return Scaffold(
       appBar: EbiAppBar(
-        title: 'Updates',
+        title: ref.L('Updates'),
         showBack: false,
         actions: [
           TextButton(
             onPressed: () {
               ref.read(notificationsProvider.notifier).markAllAsRead();
             },
-            child: const Text(
-              'Mark All Read',
-              style: TextStyle(color: Colors.white, fontSize: 13),
+            child: Text(
+              ref.L('MarkAllRead'),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
           ),
         ],
@@ -50,10 +50,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
               error: (e, _) => Center(child: Text('Error: $e')),
               data: (notifications) {
                 if (notifications.isEmpty) {
-                  return const EbiEmptyState(
+                  return EbiEmptyState(
                     icon: Icons.notifications_outlined,
-                    title: 'No Updates',
-                    subtitle: 'No notifications match this filter.',
+                    title: ref.L('NoUpdates'),
+                    subtitle: ref.L('NoNotificationsDescription'),
                   );
                 }
                 return RefreshIndicator(
@@ -125,7 +125,7 @@ class _FilterChips extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
-                label: Text(entry.value),
+                label: Text(context.L(entry.value)),
                 selected: isSelected,
                 onSelected: (_) => onSelected(entry.key),
                 selectedColor: const Color(0xFF009FE3).withValues(alpha: 0.15),

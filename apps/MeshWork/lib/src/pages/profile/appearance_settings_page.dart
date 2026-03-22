@@ -12,7 +12,7 @@ class AppearanceSettingsPage extends ConsumerWidget {
     final settings = ref.watch(settingsProvider);
 
     return Scaffold(
-      appBar: const EbiAppBar(title: 'Appearance'),
+      appBar: EbiAppBar(title: ref.L('Appearance')),
       body: ListView.separated(
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: AppAppearance.values.length,

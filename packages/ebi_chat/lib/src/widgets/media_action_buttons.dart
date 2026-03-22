@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// A set of floating circular icon buttons for media preview pages
 /// (image & video). Positioned at bottom-right corner.
@@ -28,16 +29,16 @@ class MediaActionButtons extends StatelessWidget {
     final buttons = <Widget>[];
 
     if (onForward != null) {
-      buttons.add(_CircleButton(icon: Icons.send_rounded, tooltip: '转发', onTap: onForward));
+      buttons.add(_CircleButton(icon: Icons.send_rounded, tooltip: context.L('Forward'), onTap: onForward));
     }
     if (onDownload != null) {
-      buttons.add(_CircleButton(icon: Icons.download_rounded, tooltip: '保存/下载', onTap: onDownload));
+      buttons.add(_CircleButton(icon: Icons.download_rounded, tooltip: context.L('SaveOrDownload'), onTap: onDownload));
     }
     if (onGallery != null) {
-      buttons.add(_CircleButton(icon: Icons.grid_view_rounded, tooltip: '历史多媒体', onTap: onGallery));
+      buttons.add(_CircleButton(icon: Icons.grid_view_rounded, tooltip: context.L('MediaHistory'), onTap: onGallery));
     }
     if (onShare != null) {
-      buttons.add(_CircleButton(icon: Icons.more_horiz_rounded, tooltip: '更多', onTap: onShare));
+      buttons.add(_CircleButton(icon: Icons.more_horiz_rounded, tooltip: context.L('More'), onTap: onShare));
     }
 
     final columnChildren = <Widget>[];

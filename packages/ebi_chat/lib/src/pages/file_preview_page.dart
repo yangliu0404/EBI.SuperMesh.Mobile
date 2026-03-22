@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_chat/src/models/file_preview_info.dart';
@@ -146,7 +147,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       // Open system share sheet.
       await Share.shareXFiles(
         [XFile(path)],
-        subject: _displayName,
+        subject: _displayNameFor(context),
       );
     } catch (e) {
       if (!mounted) return;
@@ -235,15 +236,15 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
     );
   }
 
-  String get _displayName =>
-      _info?.fileName ?? widget.fileName ?? '文件';
+  String _displayNameFor(BuildContext context) =>
+      _info?.fileName ?? widget.fileName ?? context.L('File');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _displayName,
+          _displayNameFor(context),
           style: const TextStyle(fontSize: 16),
           overflow: TextOverflow.ellipsis,
         ),
@@ -252,7 +253,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
             IconButton(
               icon: const Icon(Icons.share),
               onPressed: _download,
-              tooltip: '分享',
+              tooltip: context.L('Share'),
             ),
         ],
       ),
@@ -405,7 +406,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                     FilledButton.icon(
                       onPressed: _downloadAndOpen,
                       icon: const Icon(Icons.open_in_new),
-                      label: Text(_localPath != null ? '再次打开' : '打开文件'),
+                      label: Text(_localPath != null ? context.L('OpenAgain') : context.L('OpenFile')),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -415,7 +416,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                       ),
                       icon: const Icon(Icons.download),
-                      label: const Text('下载文件'),
+                      label: Text(context.L('DownloadFile')),
                     ),
                   ],
                 ),
@@ -475,7 +476,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                     FilledButton.icon(
                       onPressed: _downloadAndOpen,
                       icon: const Icon(Icons.open_in_new),
-                      label: Text(_localPath != null ? '再次打开' : '打开文件'),
+                      label: Text(_localPath != null ? context.L('OpenAgain') : context.L('OpenFile')),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -485,7 +486,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                       ),
                       icon: const Icon(Icons.download),
-                      label: const Text('下载文件'),
+                      label: Text(context.L('DownloadFile')),
                     ),
                   ],
                 ),

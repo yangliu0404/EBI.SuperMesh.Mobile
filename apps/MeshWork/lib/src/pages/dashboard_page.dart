@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 /// Dashboard page extracted from original main.dart.
 class DashboardPage extends StatelessWidget {
@@ -19,7 +20,7 @@ class DashboardPage extends StatelessWidget {
               color: EbiColors.primaryBlue,
             ),
             const SizedBox(height: 24),
-            Text('Welcome to MeshWork', style: EbiTextStyles.h2),
+            Text(context.L('WelcomeToMeshWork'), style: EbiTextStyles.h2),
             const SizedBox(height: 8),
             Text(
               'e-bi Employee Mobile Office',
@@ -27,7 +28,7 @@ class DashboardPage extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             EbiButton(
-              text: 'Get Started',
+              text: context.L('GetStarted'),
               onPressed: () {},
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 
 /// Inline PDF viewer using `pdfrx` (PDFium-based, cross-platform).
@@ -173,7 +174,7 @@ class _PdfPreviewWidgetState extends ConsumerState<PdfPreviewWidget> {
                 _download();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('重试'),
+              label: Text(context.L('Retry')),
             ),
           ],
         ),

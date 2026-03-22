@@ -55,8 +55,8 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: EbiColors.bgMeshPortal,
-      appBar: const EbiAppBar(
-        title: 'Feedback',
+      appBar: EbiAppBar(
+        title: ref.L('Feedback'),
         backgroundColor: EbiColors.secondaryCyan,
       ),
       body: GestureDetector(
@@ -87,7 +87,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
             // ── Privacy Note ──
             Center(
               child: Text(
-                'Your feedback helps us improve MeshPortal.',
+                ref.L('FeedbackHelpsImprove'),
                 style: EbiTextStyles.bodySmall.copyWith(
                   color: EbiColors.textHint,
                 ),
@@ -109,7 +109,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
-            'SELECT CATEGORY',
+            ref.L('SelectCategory'),
             style: EbiTextStyles.labelSmall.copyWith(
               color: EbiColors.textSecondary,
               letterSpacing: 1.2,
@@ -189,7 +189,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 10),
           child: Text(
-            'DESCRIPTION',
+            ref.L('Description'),
             style: EbiTextStyles.labelSmall.copyWith(
               color: EbiColors.textSecondary,
               letterSpacing: 1.2,
@@ -344,7 +344,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           child: Row(
             children: [
               Text(
-                'CONTACT',
+                ref.L('Contact'),
                 style: EbiTextStyles.labelSmall.copyWith(
                   color: EbiColors.textSecondary,
                   letterSpacing: 1.2,
@@ -359,9 +359,9 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   color: EbiColors.divider.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: const Text(
-                  'OPTIONAL',
-                  style: TextStyle(
+                child: Text(
+                  ref.L('Optional'),
+                  style: const TextStyle(
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
                     color: EbiColors.textHint,
@@ -374,7 +374,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         ),
         EbiTextField(
           controller: _contactController,
-          hintText: 'Email or phone for follow-up',
+          hintText: ref.L('EmailOrPhoneForFollowUp'),
           prefixIcon: Icons.alternate_email,
           keyboardType: TextInputType.emailAddress,
         ),
@@ -385,7 +385,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
   // ── Submit Button ──
   Widget _buildSubmitButton() {
     return EbiButton(
-      text: 'Submit Feedback',
+      text: ref.L('SubmitFeedback'),
       icon: Icons.send_outlined,
       width: double.infinity,
       isLoading: _isSubmitting,
@@ -430,12 +430,12 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Thank You!',
+              ref.L('ThankYou'),
               style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
             ),
             const SizedBox(height: 8),
             Text(
-              'Your feedback has been submitted successfully. We appreciate your input!',
+              ref.L('FeedbackSubmittedSuccess'),
               style: EbiTextStyles.bodyMedium.copyWith(
                 color: EbiColors.textSecondary,
               ),
@@ -449,7 +449,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).pop();
                 },
-                child: const Text('Done'),
+                child: Text(ref.L('Done')),
               ),
             ),
           ],

@@ -123,8 +123,8 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '群设置',
+        title: Text(
+          context.L('GroupSettings'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -146,7 +146,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
           return false;
         },
         child: _loading
-            ? const EbiLoading(message: '加载中...')
+            ? EbiLoading(message: context.L('Loading'))
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
@@ -163,7 +163,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                   
                   Padding(
                     padding: const EdgeInsets.only(left: 20, bottom: 8),
-                    child: const Text('群聊信息', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                    child: Text(context.L('GroupInfo'), style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
                   ),
                   
                   // Group Info Card
@@ -177,16 +177,16 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                   _buildPersonalizationSection(),
                   
                   // Label "管理"
-                  const Padding(
-                    padding: EdgeInsets.only(left: 20, top: 12, bottom: 8),
-                    child: Text('管理', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 12, bottom: 8),
+                    child: Text(context.L('Management'), style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
                   ),
                   _buildManagementSection(),
                   
                   // Label "其他功能"
-                  const Padding(
-                    padding: EdgeInsets.only(left: 20, top: 12, bottom: 8),
-                    child: Text('其他功能', style: TextStyle(fontSize: 13, color: Color(0xFF999999))),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 20, top: 12, bottom: 8),
+                    child: Text(context.L('OtherFeatures'), style: const TextStyle(fontSize: 13, color: Color(0xFF999999))),
                   ),
                   _buildOtherFeaturesSection(),
 
@@ -399,7 +399,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                         ],
                       ),
                       child: Text(
-                        member.isSuperAdmin ? '群主' : '群管理员',
+                        member.isSuperAdmin ? context.L('GroupOwner') : context.L('GroupAdmin'),
                         style: const TextStyle(
                           fontSize: 8,
                           fontWeight: FontWeight.w500,
@@ -445,9 +445,9 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
               ),
             ),
             const SizedBox(height: 10),
-            const Text(
-              '添加',
-              style: TextStyle(fontSize: 12, color: Color(0xFF999999)),
+            Text(
+              context.L('Add'),
+              style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
             ),
           ],
         ),
@@ -471,13 +471,13 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                 color: const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(20), // More rounded like screenshot
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.search, size: 18, color: Color(0xFF999999)),
-                  SizedBox(width: 8),
+                  const Icon(Icons.search, size: 18, color: Color(0xFF999999)),
+                  const SizedBox(width: 8),
                   Text(
-                    '搜索',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                    context.L('Search'),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
                   ),
                 ],
               ),
@@ -492,16 +492,16 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
               spacing: 0,
               runSpacing: 20,
               children: [
-                _categoryIcon(Icons.chat_bubble_outline, '聊天记录', width: itemWidth, onTap: () => _searchHistory(0)),
-                _categoryIcon(Icons.image_outlined, '图片及视频', width: itemWidth, onTap: () => _searchHistory(1)),
-                _categoryIcon(Icons.folder_outlined, '文件', width: itemWidth, onTap: () => _searchHistory(2)),
-                _categoryIcon(Icons.link, '链接', width: itemWidth, onTap: () => _searchHistory(3)),
-                
+                _categoryIcon(Icons.chat_bubble_outline, context.L('ChatHistory'), width: itemWidth, onTap: () => _searchHistory(0)),
+                _categoryIcon(Icons.image_outlined, context.L('ImagesAndVideos'), width: itemWidth, onTap: () => _searchHistory(1)),
+                _categoryIcon(Icons.folder_outlined, context.L('File'), width: itemWidth, onTap: () => _searchHistory(2)),
+                _categoryIcon(Icons.link, context.L('Links'), width: itemWidth, onTap: () => _searchHistory(3)),
+
                 // ERP & Enterprise integrations
-                _categoryIcon(Icons.assignment_outlined, '相关项目', width: itemWidth, onTap: () => _showComingSoon('相关项目')),
-                _categoryIcon(Icons.task_alt, '相关任务', width: itemWidth, onTap: () => _showComingSoon('相关任务')),
-                _categoryIcon(Icons.fact_check_outlined, '相关审批', width: itemWidth, onTap: () => _showComingSoon('相关审批')),
-                _categoryIcon(Icons.receipt_long_outlined, '往来单据', width: itemWidth, onTap: () => _showComingSoon('往来单据')),
+                _categoryIcon(Icons.assignment_outlined, context.L('RelatedProjects'), width: itemWidth, onTap: () => _showComingSoon('相关项目')),
+                _categoryIcon(Icons.task_alt, context.L('RelatedTasks'), width: itemWidth, onTap: () => _showComingSoon('相关任务')),
+                _categoryIcon(Icons.fact_check_outlined, context.L('RelatedApprovals'), width: itemWidth, onTap: () => _showComingSoon('相关审批')),
+                _categoryIcon(Icons.receipt_long_outlined, context.L('CorrespondenceDocuments'), width: itemWidth, onTap: () => _showComingSoon('往来单据')),
               ],
             );
           }),
@@ -541,21 +541,21 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
       child: Column(
         children: [
           _buildInfoRow(
-            '群名称',
+            context.L('GroupName'),
             _groupInfo?.name ?? widget.groupName ?? '无名字',
             canEdit: _isOwner || _isAdmin,
             onTap: () => _editField('name', _groupInfo?.name ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _buildInfoRow(
-            '群公告',
+            context.L('GroupAnnouncement'),
             _groupInfo?.notice?.isNotEmpty == true ? _groupInfo!.notice! : '无',
             canEdit: _isOwner || _isAdmin,
             onTap: () => _editField('notice', _groupInfo?.notice ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
           _buildInfoRow(
-            '群描述',
+            context.L('GroupDescription'),
             _groupInfo?.description ?? '无',
             canEdit: _isOwner || _isAdmin,
             onTap: () => _editField('description', _groupInfo?.description ?? ''),
@@ -652,7 +652,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
             onTap: () => _editField('alias', _groupInfo?.alias ?? ''),
           ),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _buildToggleRow('置顶会话', _isPinned, (v) async {
+          _buildToggleRow(context.L('PinConversation'), _isPinned, (v) async {
             final old = _isPinned;
             setState(() => _isPinned = v);
             try {
@@ -679,7 +679,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
             }
           }),
           const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
-          _buildToggleRow('消息免打扰', _isMuted, (v) async {
+          _buildToggleRow(context.L('DoNotDisturb'), _isMuted, (v) async {
             final old = _isMuted;
             setState(() => _isMuted = v);
             try {
@@ -816,12 +816,12 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         children: [
           InkWell(
             onTap: () => _showComingSoon('清空聊天记录'),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: Text(
-                  '清空聊天记录',
-                  style: TextStyle(fontSize: 16, color: Color(0xFFFF4D4F)),
+                  context.L('ClearChatHistory'),
+                  style: const TextStyle(fontSize: 16, color: Color(0xFFFF4D4F)),
                 ),
               ),
             ),
@@ -833,7 +833,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 16),
               child: Center(
                 child: Text(
-                  _isOwner ? '解散群聊' : '退出群聊',
+                  _isOwner ? context.L('DisbandGroup') : context.L('LeaveGroup'),
                   style: const TextStyle(fontSize: 16, color: Color(0xFFFF4D4F)),
                 ),
               ),
@@ -973,7 +973,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('保存', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  child: Text(context.L('Save'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -1046,7 +1046,7 @@ class _GroupSettingsPageState extends ConsumerState<GroupSettingsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('取消'),
+            child: Text(context.L('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
@@ -1129,17 +1129,17 @@ class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
     return await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('移除成员'),
+            title: Text(context.L('RemoveMember')),
             content: Text('确定要将 ${member.displayName} 移出群聊吗？'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('取消'),
+                child: Text(context.L('Cancel')),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: Colors.red),
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('移除'),
+                child: Text(context.L('Remove')),
               ),
             ],
           ),
@@ -1223,7 +1223,7 @@ class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
       appBar: AppBar(
         title: Column(
           children: [
-            const Text('群成员', style: TextStyle(fontSize: 18, color: Color(0xFF111111), fontWeight: FontWeight.normal)),
+            Text(context.L('GroupMembers'), style: const TextStyle(fontSize: 18, color: Color(0xFF111111), fontWeight: FontWeight.normal)),
             Text('群成员${_localMembers.length}人，最多可添加1000人', style: const TextStyle(fontSize: 12, color: Color(0xFF666666))),
           ],
         ),
@@ -1242,8 +1242,8 @@ class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
               final selected = await Navigator.of(context).push<List<Map<String, dynamic>>>(
                 MaterialPageRoute(
                   builder: (_) => UserSelectionPage(
-                    title: '邀请群成员',
-                    confirmButtonText: '确定',
+                    title: context.L('InviteMembers'),
+                    confirmButtonText: context.L('Confirm'),
                     disabledIds: _localMembers.map((m) => m.userId.toLowerCase()).toSet(),
                   ),
                 ),
@@ -1297,12 +1297,12 @@ class _AllMembersPageState extends ConsumerState<_AllMembersPage> {
                               _searchQuery = val.trim().toLowerCase();
                             });
                           },
-                          decoration: const InputDecoration(
-                            hintText: '搜索',
+                          decoration: InputDecoration(
+                            hintText: context.L('Search'),
                             border: InputBorder.none,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 6),
-                            hintStyle: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                            hintStyle: const TextStyle(fontSize: 14, color: Color(0xFF999999)),
                           ),
                           style: const TextStyle(fontSize: 14, color: Color(0xFF111111)),
                         ),
@@ -1487,7 +1487,7 @@ class _MemberTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        member.isSuperAdmin ? '群主' : (member.isAdmin ? '管理员' : '我'),
+                        member.isSuperAdmin ? context.L('GroupOwner') : (member.isAdmin ? context.L('GroupAdmin') : context.L('Me')),
                         style: TextStyle(
                           fontSize: 10,
                           color: isCurrentUser || member.isSuperAdmin 

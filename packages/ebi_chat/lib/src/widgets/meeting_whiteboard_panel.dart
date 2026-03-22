@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:ebi_core/ebi_core.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Collaborative whiteboard panel using WebView with pure JSON stroke sync.
@@ -111,7 +112,7 @@ class MeetingWhiteboardPanelState extends State<MeetingWhiteboardPanel> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(children: [
-                const Text('白板', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                Text(context.L('Whiteboard'), style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                 const Spacer(),
                 GestureDetector(onTap: widget.onClose, child: const Icon(Icons.close, color: Colors.white54, size: 20)),
               ]),

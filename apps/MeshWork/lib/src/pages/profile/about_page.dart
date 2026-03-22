@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 
 import 'terms_of_service_page.dart';
 import 'privacy_policy_page.dart';
@@ -32,7 +33,7 @@ class AboutPage extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 // ── Features Card ──
-                _buildFeaturesCard(),
+                _buildFeaturesCard(context),
 
                 const SizedBox(height: 16),
 
@@ -191,7 +192,7 @@ class AboutPage extends StatelessWidget {
   }
 
   // ── Features Card ──
-  Widget _buildFeaturesCard() {
+  Widget _buildFeaturesCard(BuildContext context) {
     return EbiCard(
       margin: EdgeInsets.zero,
       padding: const EdgeInsets.all(20),
@@ -212,7 +213,7 @@ class AboutPage extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Text(
-                'Key Features',
+                context.L('KeyFeatures'),
                 style: EbiTextStyles.h3.copyWith(color: EbiColors.darkNavy),
               ),
             ],
@@ -221,31 +222,31 @@ class AboutPage extends StatelessWidget {
           _featureItem(
             Icons.assignment_outlined,
             const Color(0xFF3B82F6),
-            'Task Management',
+            context.L('TaskManagement'),
             'Organize, track, and complete tasks efficiently',
           ),
           _featureItem(
             Icons.chat_outlined,
             const Color(0xFF22C55E),
-            'Real-time Messaging',
+            context.L('RealTimeMessaging'),
             'Instant communication with team members',
           ),
           _featureItem(
             Icons.notifications_active_outlined,
             const Color(0xFFF59E0B),
-            'Smart Notifications',
+            context.L('SmartNotifications'),
             'Stay updated with intelligent alerts',
           ),
           _featureItem(
             Icons.language,
             const Color(0xFF14B8A6),
-            'Multi-language Support',
+            context.L('MultiLanguageSupport'),
             'Seamless localization across regions',
           ),
           _featureItem(
             Icons.security_outlined,
             const Color(0xFFEF4444),
-            'Enterprise Security',
+            context.L('EnterpriseSecurity'),
             'Multi-tenant architecture with ABP framework',
             isLast: true,
           ),
@@ -311,7 +312,7 @@ class AboutPage extends StatelessWidget {
           _legalTile(
             Icons.description_outlined,
             const Color(0xFF14B8A6),
-            'Terms of Service',
+            context.L('TermsOfService'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
@@ -322,7 +323,7 @@ class AboutPage extends StatelessWidget {
           _legalTile(
             Icons.policy_outlined,
             const Color(0xFF3B82F6),
-            'Privacy Policy',
+            context.L('PrivacyPolicy'),
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),

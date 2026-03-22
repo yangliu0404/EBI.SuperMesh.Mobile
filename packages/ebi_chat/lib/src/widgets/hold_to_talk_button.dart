@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -138,7 +139,7 @@ class _HoldToTalkButtonState extends State<HoldToTalkButton> {
     if (_overlayEntry != null) return;
     
     _overlayEntry = OverlayEntry(
-      builder: (context) {
+      builder: (_) {
         return Positioned.fill(
           child: Material(
             color: Colors.transparent,
@@ -158,7 +159,7 @@ class _HoldToTalkButtonState extends State<HoldToTalkButton> {
                         : const _PulsingIcon(Icons.mic, Colors.white, 64),
                     const SizedBox(height: 12),
                     Text(
-                      _state == RecordState.cancelling ? '松开手指，取消发送' : '手指上滑，取消发送',
+                      _state == RecordState.cancelling ? context.L('ReleaseToCancel') : context.L('SlideUpToCancel'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -210,7 +211,7 @@ class _HoldToTalkButtonState extends State<HoldToTalkButton> {
           border: isRecording ? null : Border.all(color: EbiColors.divider),
         ),
         child: Text(
-          isRecording ? '松开 结束' : '按住 说话',
+          isRecording ? context.L('ReleaseToFinish') : context.L('HoldToTalk'),
           style: TextStyle(
             fontSize: 15,
             fontWeight: isRecording ? FontWeight.bold : FontWeight.w500,

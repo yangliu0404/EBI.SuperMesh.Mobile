@@ -4,6 +4,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 
 /// Inline audio player — downloads the file first to avoid SSL issues,
@@ -196,7 +197,7 @@ class _AudioPreviewWidgetState extends ConsumerState<AudioPreviewWidget> {
                 _downloadAndInit();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('重试'),
+              label: Text(context.L('Retry')),
             ),
           ],
         ),
