@@ -15,3 +15,4 @@ workspace:
   - packages/ebi_ui_kit
   - packages/ebi_models
   - packages/ebi_chat
+  - packages/ebi_storage

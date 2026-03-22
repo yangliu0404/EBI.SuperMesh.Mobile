@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:ebi_core/ebi_core.dart';
+import 'package:drift/drift.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/chat_room.dart';
 import 'package:ebi_chat/src/models/im_models.dart';
 import 'package:ebi_chat/src/models/im_mappers.dart';
 import 'package:ebi_chat/src/repository/chat_repository.dart';
 import 'package:ebi_chat/src/services/signalr_connection_manager.dart';
+import 'package:uuid/uuid.dart';
 
 /// Real [ChatRepository] backed by SignalR (real-time) + REST API (history).
 ///
@@ -19,6 +23,9 @@ class SignalRChatRepository implements ChatRepository {
   final SignalRConnectionManager _connectionManager;
   final ApiClient _apiClient;
   final String currentUserId;
+
+  MessageDao? messageDao;
+  ConversationDao? conversationDao;
 
   /// Local message cache per conversation.
   final Map<String, List<ChatMessage>> _messageCache = {};
@@ -94,6 +101,9 @@ class SignalRChatRepository implements ChatRepository {
         }
       }
 
+      // Save to local DB (server data overwrites local).
+      _saveConversationsToDb(rooms);
+
       return rooms;
     } catch (e, st) {
       AppLogger.error('[SignalRChatRepo] getConversations failed', e, st);
@@ -140,6 +150,9 @@ class SignalRChatRepository implements ChatRepository {
         _messageCache[receiveUserId]!.addAll(messages);
       }
 
+      // Save to local DB.
+      _saveMessagesToDb(messages);
+
       return messages;
     } catch (e, st) {
       AppLogger.error('[SignalRChatRepo] getUserMessages failed', e, st);
@@ -185,6 +198,9 @@ class SignalRChatRepository implements ChatRepository {
 
       // Ensure we've joined this group on SignalR.
       _joinGroup(groupId);
+
+      // Save to local DB.
+      _saveMessagesToDb(messages);
 
       return messages;
     } catch (e, st) {
@@ -235,38 +251,118 @@ class SignalRChatRepository implements ChatRepository {
 
   @override
   Future<String> sendMessage(ImChatMessage message) async {
-    if (_connectionManager.isConnected) {
-      final messageId = await _connectionManager.sendMessage(message);
-      final finalMsgId = messageId ?? message.messageId;
-      _connectionManager.broadcastLocalMessage(
-        message.copyWith(
-          messageId: finalMsgId,
-          state: ImMessageState.send.value,
-        ),
-      );
-      return finalMsgId;
-    }
-
-    // Fallback: send via REST API when SignalR is unavailable.
+    // 1. Save to local DB immediately with syncState = 1 (pendingSend).
+    final roomId = message.isGroupMessage
+        ? 'group:${message.groupId}'
+        : (message.toUserId ?? '');
     try {
-      final response = await _apiClient.post(
-        ApiEndpoints.imSendMessage,
-        data: message.toJson(),
-      );
-      final result = ImChatMessageSendResult.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-      final finalMsgId = result.messageId;
+      await messageDao?.upsertMessage(MessagesCompanion(
+        messageId: Value(message.messageId),
+        tenantId: Value(message.tenantId),
+        groupId: Value(message.groupId),
+        formUserId: Value(message.formUserId),
+        formUserName: Value(message.formUserName),
+        toUserId: Value(message.toUserId),
+        content: Value(message.content),
+        sendTime: Value(message.sendTime),
+        isAnonymous: Value(message.isAnonymous),
+        messageType: Value(message.messageType),
+        source: Value(message.source),
+        state: Value(message.state),
+        extraProperties: Value(message.extraProperties != null
+            ? _jsonEncode(message.extraProperties!)
+            : null),
+        roomId: Value(roomId),
+        syncState: const Value(1), // pendingSend
+        localCreatedAt: Value(DateTime.now().millisecondsSinceEpoch),
+      ));
+    } catch (_) {}
+
+    // 2. Try to send via SignalR or REST.
+    try {
+      String finalMsgId;
+      if (_connectionManager.isConnected) {
+        final messageId = await _connectionManager.sendMessage(message);
+        finalMsgId = messageId ?? message.messageId;
+      } else {
+        // Fallback: send via REST API when SignalR is unavailable.
+        final response = await _apiClient.post(
+          ApiEndpoints.imSendMessage,
+          data: message.toJson(),
+        );
+        final result = ImChatMessageSendResult.fromJson(
+          response.data as Map<String, dynamic>,
+        );
+        finalMsgId = result.messageId;
+      }
+
       _connectionManager.broadcastLocalMessage(
         message.copyWith(
           messageId: finalMsgId,
           state: ImMessageState.send.value,
         ),
       );
+
+      // 3. On success, update syncState to 0 (synced).
+      try {
+        await messageDao?.updateSyncState(message.messageId, 0);
+      } catch (_) {}
+
       return finalMsgId;
     } catch (e, st) {
-      AppLogger.error('[SignalRChatRepo] sendMessage REST failed', e, st);
-      rethrow;
+      // Both SignalR and REST failed — keep as pendingSend (syncState = 1)
+      // so it can be retried on network recovery.
+      AppLogger.warning('[SignalRChatRepo] sendMessage failed, queued for retry: ${message.messageId}');
+      AppLogger.error('[SignalRChatRepo] sendMessage error detail', e, st);
+      // syncState is already 1 (pendingSend) from step 1, so no update needed.
+      // Return the original messageId so the UI can display it with "sending" status.
+      return message.messageId;
+    }
+  }
+
+  /// Retry sending all pending messages (called on network recovery).
+  Future<void> retrySendPendingMessages() async {
+    final pending = await messageDao?.getPendingSend();
+    if (pending == null || pending.isEmpty) return;
+
+    AppLogger.info('[SignalRChatRepo] Retrying ${pending.length} pending messages');
+
+    for (final msg in pending) {
+      try {
+        final imMsg = ImChatMessage(
+          messageId: msg.messageId,
+          groupId: msg.groupId ?? '',
+          formUserId: msg.formUserId ?? '',
+          formUserName: msg.formUserName ?? '',
+          toUserId: msg.toUserId,
+          content: msg.content ?? '',
+          sendTime: msg.sendTime ?? DateTime.now().toIso8601String(),
+          messageType: msg.messageType ?? 0,
+          source: msg.source ?? 0,
+          extraProperties: msg.extraProperties != null
+              ? (jsonDecode(msg.extraProperties!) as Map<String, dynamic>)
+              : null,
+        );
+
+        final newId = await sendMessage(imMsg);
+        // Update DB: mark synced (sendMessage already does this on success,
+        // but ensure it's done).
+        await messageDao?.updateSyncState(msg.messageId, 0);
+        AppLogger.info(
+            '[SignalRChatRepo] Pending message sent: ${msg.messageId} -> $newId');
+      } catch (e) {
+        await messageDao?.updateSyncState(msg.messageId, 2); // sendFailed
+        AppLogger.warning(
+            '[SignalRChatRepo] Pending message failed: ${msg.messageId}');
+      }
+    }
+  }
+
+  static String _jsonEncode(Map<String, dynamic> map) {
+    try {
+      return jsonEncode(map);
+    } catch (_) {
+      return '{}';
     }
   }
 
@@ -292,6 +388,8 @@ class SignalRChatRepository implements ChatRepository {
 
         _messageCache[conversationId] ??= [];
         _messageCache[conversationId]!.add(uiMsg);
+        // Persist real-time message to DB.
+        _saveMessagesToDb([uiMsg]);
         _convBroadcasts[conversationId]?.add(uiMsg);
       });
     }
@@ -408,6 +506,58 @@ class SignalRChatRepository implements ChatRepository {
     _convBroadcasts.clear();
     _messageCache.clear();
     _joinedGroups.clear();
+  }
+
+  // ── Local DB accessors ──────────────────────────────────────────────────
+
+  /// Load conversations from local DB (for instant startup).
+  Future<List<ChatRoom>> getConversationsFromDb() async {
+    if (conversationDao == null) return [];
+    try {
+      final rows = await conversationDao!.getAllSorted();
+      return rows.map((r) => r.toUiRoom()).toList();
+    } catch (e) {
+      AppLogger.debug('[SignalRChatRepo] Failed to load conversations from DB: $e');
+      return [];
+    }
+  }
+
+  /// Load messages from local DB (for instant chat open).
+  Future<List<ChatMessage>> getMessagesFromDb(
+    String roomId, {
+    int limit = 50,
+    String? beforeSendTime,
+  }) async {
+    if (messageDao == null) return [];
+    try {
+      final rows = await messageDao!.getByRoom(roomId, limit: limit, beforeSendTime: beforeSendTime);
+      final messages = rows.map((r) => r.toUiMessage()).toList();
+      // DB returns desc order, reverse for UI (ascending).
+      return messages.reversed.toList();
+    } catch (e) {
+      AppLogger.debug('[SignalRChatRepo] Failed to load messages from DB: $e');
+      return [];
+    }
+  }
+
+  // ── DB helpers (fire-and-forget) ────────────────────────────────────────
+
+  Future<void> _saveConversationsToDb(List<ChatRoom> rooms) async {
+    try {
+      final companions = rooms.map((r) => r.toDbCompanion()).toList();
+      await conversationDao?.upsertConversations(companions);
+    } catch (e) {
+      AppLogger.debug('[SignalRChatRepo] DB save conversations failed: $e');
+    }
+  }
+
+  Future<void> _saveMessagesToDb(List<ChatMessage> messages) async {
+    try {
+      final companions = messages.map((m) => m.toDbCompanion()).toList();
+      await messageDao?.upsertMessages(companions);
+    } catch (e) {
+      AppLogger.debug('[SignalRChatRepo] DB save messages failed: $e');
+    }
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────

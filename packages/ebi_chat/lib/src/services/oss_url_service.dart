@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/src/models/file_preview_info.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -21,22 +22,34 @@ class OssUrlException implements Exception {
 /// Aligns with the Web project's `useImUpload.getFileUrl()` logic.
 /// OSS path format: `blobs:im/<convKey>/<subPath>/<uniqueFileName>`
 ///
-/// Includes an in-memory LRU cache to avoid redundant API calls for the
-/// same blob within a short period (signed URLs typically expire after
-/// minutes, so caching for the lifetime of the service instance is safe).
+/// Uses a two-level cache:
+/// - **L1**: fast in-memory map (`_cache`) for hot lookups within the
+///   current isolate / service lifetime.
+/// - **L2**: persistent database cache via [OssCacheDao] that survives
+///   app restarts and has no fixed size limit.
+///
+/// Signed URLs typically expire after minutes, so both layers respect a TTL.
 class OssUrlService {
   final ApiClient _apiClient;
+  final OssCacheDao? _dao;
 
-  /// In-memory cache: ossPath → signed URL.
+  /// In-memory L1 cache: ossPath → signed URL.
   final Map<String, _CacheEntry> _cache = {};
 
   /// Cache entries older than this are considered stale.
   static const _cacheTtl = Duration(minutes: 10);
 
-  /// Maximum number of cached entries to prevent unbounded growth.
+  /// Maximum number of entries kept in the in-memory L1 cache.
   static const _maxCacheSize = 200;
 
-  OssUrlService({required ApiClient apiClient}) : _apiClient = apiClient;
+  OssUrlService({
+    required ApiClient apiClient,
+    OssCacheDao? ossCacheDao,
+  })  : _apiClient = apiClient,
+        _dao = ossCacheDao {
+    // Kick off expired-entry cleanup in the background.
+    _dao?.deleteExpired();
+  }
 
   /// Parse an ossPath into bucket, directory path, and file name.
   ///
@@ -76,10 +89,18 @@ class OssUrlService {
       throw const OssUrlException('OSS path is empty');
     }
 
-    // Check cache first.
+    // L1: check in-memory cache first.
     final cached = _cache[ossPath];
     if (cached != null && !cached.isExpired) {
       return cached.url;
+    }
+
+    // L2: check persistent DB cache.
+    final dbUrl = await _dao?.getValidUrl(ossPath);
+    if (dbUrl != null && dbUrl.isNotEmpty) {
+      // Promote to L1 for subsequent fast access.
+      _cache[ossPath] = _CacheEntry(url: dbUrl, createdAt: DateTime.now());
+      return dbUrl;
     }
 
     final parsed = _parseOssPath(ossPath);
@@ -340,7 +361,10 @@ class OssUrlService {
   }
 
   /// Evict a single entry (useful after a known expiry or error).
-  void evict(String ossPath) => _cache.remove(ossPath);
+  void evict(String ossPath) {
+    _cache.remove(ossPath);
+    _dao?.evict(ossPath);
+  }
 
   /// Download a file from a direct URL to a local path.
   ///
@@ -358,18 +382,23 @@ class OssUrlService {
     }
   }
 
-  /// Clear entire cache.
-  void clearCache() => _cache.clear();
+  /// Clear both in-memory (L1) and persistent DB (L2) caches.
+  void clearCache() {
+    _cache.clear();
+    _dao?.clearAll();
+  }
 
   // ── Cache internals ──
 
   void _putCache(String key, String url) {
-    // Simple LRU eviction: drop oldest entries when over limit.
+    // Simple LRU eviction: drop oldest entry when over limit.
     if (_cache.length >= _maxCacheSize) {
       final oldest = _cache.entries.first.key;
       _cache.remove(oldest);
     }
     _cache[key] = _CacheEntry(url: url, createdAt: DateTime.now());
+    // Persist to DB (L2) — fire-and-forget.
+    _dao?.put(key, url, ttl: _cacheTtl);
   }
 }
 
@@ -386,5 +415,7 @@ class _CacheEntry {
 /// Riverpod provider for [OssUrlService].
 final ossUrlServiceProvider = Provider<OssUrlService>((ref) {
   final apiClient = ref.read(apiClientProvider);
-  return OssUrlService(apiClient: apiClient);
+  OssCacheDao? dao;
+  try { dao = ref.read(ossCacheDaoProvider); } catch (_) {}
+  return OssUrlService(apiClient: apiClient, ossCacheDao: dao);
 });

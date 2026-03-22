@@ -146,6 +146,15 @@ class AbpLanguageInfo {
       isDefault: json['isDefault'] as bool? ?? false,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'cultureName': cultureName,
+        'uiCultureName': uiCultureName,
+        'displayName': displayName,
+        'flagIcon': flagIcon,
+        'isEnabled': isEnabled,
+        'isDefault': isDefault,
+      };
 }
 
 /// Timing/timezone info from ABP configuration.

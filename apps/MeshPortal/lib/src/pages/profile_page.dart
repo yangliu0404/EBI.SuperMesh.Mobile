@@ -11,6 +11,7 @@ import 'profile/language_settings_page.dart';
 import 'profile/notification_settings_page.dart';
 import 'profile/appearance_settings_page.dart';
 import 'profile/about_page.dart';
+import 'profile/data_storage_page.dart';
 import 'profile/terms_of_service_page.dart';
 import 'profile/privacy_policy_page.dart';
 import 'profile/switch_account_sheet.dart';
@@ -99,7 +100,7 @@ class ProfilePage extends ConsumerWidget {
                 color: const Color(0xFF6B7280),
                 title: ref.L('DataAndStorage'),
                 onTap: () => _push(
-                    context, const ComingSoonPage(title: 'Data & Storage')),
+                    context, const DataStoragePage()),
               ),
             ]),
 

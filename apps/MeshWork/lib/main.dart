@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_core/ebi_core.dart';
 import 'package:ebi_chat/ebi_chat.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 import 'package:mesh_work/src/routing/app_router.dart';
 
 /// Global navigator key shared between GoRouter and CallFloatWindow.
@@ -16,10 +17,15 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Allow self-signed certificates for dev server (10.1.1.8).
   HttpOverrides.global = _DevHttpOverrides();
+
+  // Initialize local database.
+  final db = await AppDatabase.create();
+
   runApp(
     ProviderScope(
       overrides: [
         clientIdProvider.overrideWithValue(AppConfig.meshWorkClientId),
+        databaseProvider.overrideWithValue(db),
       ],
       child: MeshWorkApp(),
     ),

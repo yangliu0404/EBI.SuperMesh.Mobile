@@ -8,6 +8,10 @@ import 'package:ebi_chat/src/repository/chat_repository.dart';
 import 'package:ebi_chat/src/repository/mock_chat_repository.dart';
 import 'package:ebi_chat/src/repository/signalr_chat_repository.dart';
 import 'package:ebi_chat/src/services/signalr_connection_manager.dart';
+import 'package:ebi_chat/src/services/offline_sync_service.dart';
+import 'package:ebi_chat/src/models/im_mappers.dart' show DbMessageToUi;
+import 'package:ebi_storage/ebi_storage.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 // ── Feature flag ──────────────────────────────────────────────────────────
 // Set to true to use the real ABP IM backend via SignalR + REST.
@@ -62,6 +66,13 @@ final chatRepositoryProvider = Provider<ChatRepository>((ref) {
       apiClient: apiClient,
       currentUserId: currentUserId,
     );
+    // Inject DB DAOs for local caching.
+    try {
+      repo.messageDao = ref.read(messageDaoProvider);
+      repo.conversationDao = ref.read(conversationDaoProvider);
+    } catch (_) {
+      // DB not initialized yet.
+    }
     ref.onDispose(repo.dispose);
     return repo;
   }
@@ -96,6 +107,7 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
   StreamSubscription<ImChatMessage>? _messageSub;
   StreamSubscription<ImChatMessage>? _recallSub;
   StreamSubscription<ImGroupInfoUpdatedEvent>? _groupUpdateSub;
+  StreamSubscription? _connectivitySub;
 
   ChatRoomsNotifier({
     required this.repo,
@@ -106,14 +118,29 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     _listenToMessages();
     _listenToRecalls();
     _listenToGroupUpdates();
+    _listenToConnectivity();
   }
 
   Future<void> _load() async {
+    // 1. Load from local DB first (instant display).
+    try {
+      if (repo is SignalRChatRepository) {
+        final dbRooms = await (repo as SignalRChatRepository).getConversationsFromDb();
+        if (dbRooms.isNotEmpty && mounted) {
+          state = AsyncValue.data(dbRooms);
+        }
+      }
+    } catch (_) {}
+
+    // 2. Then fetch from server (server data overwrites).
     try {
       final rooms = await repo.getConversations();
       if (mounted) state = AsyncValue.data(rooms);
     } catch (e, st) {
-      if (mounted) state = AsyncValue.error(e, st);
+      // Only show error if we don't have local data.
+      if (mounted && !state.hasValue) {
+        state = AsyncValue.error(e, st);
+      }
     }
   }
 
@@ -162,6 +189,21 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
         newList.removeAt(idx);
         newList.insert(0, updated);
         state = AsyncValue.data(newList);
+        // Update conversation in DB.
+        try {
+          if (repo is SignalRChatRepository) {
+            final dao = (repo as SignalRChatRepository).conversationDao;
+            dao?.updateOnNewMessage(
+              conversationKey,
+              messageId: imMsg.messageId,
+              content: imMsg.content,
+              sendTime: imMsg.sendTime,
+              messageType: imMsg.messageType,
+              formUserName: isSelf ? '' : imMsg.formUserName,
+              unreadIncrement: isSelf ? 0 : 1,
+            );
+          }
+        } catch (_) {}
       } else {
         // New conversation — trigger a full refresh to get proper metadata.
         refresh();
@@ -296,6 +338,15 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     });
   }
 
+  void _listenToConnectivity() {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
+      final hasNetwork = results.any((r) => r != ConnectivityResult.none);
+      if (hasNetwork && repo is SignalRChatRepository) {
+        (repo as SignalRChatRepository).retrySendPendingMessages();
+      }
+    });
+  }
+
   /// Clear unread count for a conversation (called when user enters chat).
   void clearUnreadCount(String conversationKey) {
     final rooms = state.valueOrNull;
@@ -314,6 +365,7 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     _messageSub?.cancel();
     _recallSub?.cancel();
     _groupUpdateSub?.cancel();
+    _connectivitySub?.cancel();
     super.dispose();
   }
 }
@@ -323,10 +375,27 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
 final chatMessagesProvider =
     FutureProvider.family<List<ChatMessage>, String>((ref, conversationId) async {
   final repo = ref.read(chatRepositoryProvider);
-  if (conversationId.startsWith('group:')) {
-    return repo.getGroupMessages(conversationId.substring(6));
+
+  // 1. Try loading from DB first for instant display.
+  List<ChatMessage> dbMessages = [];
+  if (repo is SignalRChatRepository) {
+    dbMessages = await repo.getMessagesFromDb(conversationId);
   }
-  return repo.getUserMessages(conversationId);
+
+  // 2. Fetch from server (server overwrites).
+  try {
+    final List<ChatMessage> serverMessages;
+    if (conversationId.startsWith('group:')) {
+      serverMessages = await repo.getGroupMessages(conversationId.substring(6));
+    } else {
+      serverMessages = await repo.getUserMessages(conversationId);
+    }
+    return serverMessages;
+  } catch (e) {
+    // If server fails but we have local data, return that.
+    if (dbMessages.isNotEmpty) return dbMessages;
+    rethrow;
+  }
 });
 
 /// Message stream for a specific conversation.
@@ -341,4 +410,44 @@ final typingIndicatorProvider = StreamProvider.family<
     ({String userId, bool isTyping}), String>((ref, conversationId) {
   final manager = ref.read(signalRConnectionProvider);
   return manager.typingStream.where((e) => e.userId == conversationId);
+});
+
+// ── Offline Sync Service ─────────────────────────────────────────────────
+
+/// Provides [OfflineSyncService] for retrying pending messages on network recovery.
+final offlineSyncServiceProvider = Provider<OfflineSyncService?>((ref) {
+  final repo = ref.read(chatRepositoryProvider);
+  if (repo is! SignalRChatRepository) return null;
+
+  MessageDao messageDao;
+  try {
+    messageDao = ref.read(messageDaoProvider);
+  } catch (_) {
+    return null;
+  }
+
+  final service = OfflineSyncService(
+    messageDao: messageDao,
+    repo: repo,
+  );
+  service.start();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+// ── Local Message Search ─────────────────────────────────────────────────
+
+/// Search messages locally by content or sender name.
+final localMessageSearchProvider = FutureProvider.family<List<ChatMessage>,
+    ({String query, String? roomId})>((ref, params) async {
+  try {
+    final messageDao = ref.read(messageDaoProvider);
+    final results = await messageDao.searchContent(
+      params.query,
+      roomId: params.roomId,
+    );
+    return results.map((m) => m.toUiMessage()).toList();
+  } catch (e) {
+    return [];
+  }
 });

@@ -16,6 +16,8 @@ export 'src/repository/signalr_chat_repository.dart';
 // Services
 export 'src/services/signalr_connection_manager.dart';
 export 'src/services/oss_url_service.dart';
+export 'src/services/offline_sync_service.dart';
+export 'src/services/draft_service.dart';
 
 // Providers
 export 'src/providers/chat_providers.dart';

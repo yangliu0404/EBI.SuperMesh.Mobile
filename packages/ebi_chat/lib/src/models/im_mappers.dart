@@ -1,6 +1,10 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/chat_room.dart';
 import 'package:ebi_chat/src/models/im_models.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 
 /// Maps backend [ImMessageState] to UI [MessageStatus].
 MessageStatus mapImMessageState(int? stateValue) {
@@ -306,5 +310,138 @@ extension ImLastChatMessageMapper on ImLastChatMessage {
       default:
         return content;
     }
+  }
+}
+
+/// Extension to convert UI [ChatMessage] to DB [MessagesCompanion] for writing.
+extension ChatMessageToDb on ChatMessage {
+  MessagesCompanion toDbCompanion() {
+    // Reverse map UI MessageType to backend int
+    int backendType;
+    switch (type) {
+      case MessageType.text: backendType = 0;
+      case MessageType.image: backendType = 10;
+      case MessageType.video: backendType = 30;
+      case MessageType.audio: backendType = 40;
+      case MessageType.file: backendType = 50;
+      case MessageType.voiceCall: backendType = 60;
+      case MessageType.videoCall: backendType = 70;
+      case MessageType.meeting: backendType = 80;
+      case MessageType.contactCard: backendType = 90;
+      case MessageType.system: backendType = 100;
+    }
+
+    int? stateValue;
+    switch (status) {
+      case MessageStatus.sending: stateValue = null;
+      case MessageStatus.sent: stateValue = 0;
+      case MessageStatus.delivered: stateValue = 0;
+      case MessageStatus.read: stateValue = 1;
+    }
+
+    return MessagesCompanion.insert(
+      messageId: id,
+      tenantId: Value(null),
+      groupId: Value(roomId.startsWith('group:') ? roomId.substring(6) : ''),
+      formUserId: senderId,
+      formUserName: senderName,
+      toUserId: Value(null),
+      content: content,
+      sendTime: createdAt.toIso8601String(),
+      isAnonymous: Value(false),
+      messageType: Value(backendType),
+      source: Value(type == MessageType.system ? 10 : 0),
+      state: Value(stateValue),
+      extraProperties: Value(extraProperties != null ? jsonEncode(extraProperties) : null),
+      roomId: roomId,
+      syncState: Value(0),
+      localCreatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
+/// Extension to convert DB [Message] row to UI [ChatMessage] for reading.
+extension DbMessageToUi on Message {
+  ChatMessage toUiMessage() {
+    final Map<String, dynamic>? extras = extraProperties != null
+        ? jsonDecode(extraProperties!) as Map<String, dynamic>
+        : null;
+
+    return ChatMessage(
+      id: messageId,
+      roomId: roomId,
+      senderId: formUserId,
+      senderName: formUserName,
+      type: mapImMessageType(messageType),
+      content: content,
+      fileName: extras?['fileName']?.toString() ?? extras?['FileName']?.toString(),
+      fileSize: _toIntSafe(extras?['fileSize'] ?? extras?['FileSize']),
+      mimeType: extras?['mimeType']?.toString(),
+      fileExt: extras?['fileExt']?.toString() ?? extras?['FileExt']?.toString(),
+      mediaDuration: _toIntSafe(extras?['duration'] ?? extras?['Duration']),
+      createdAt: DateTime.tryParse(sendTime) ?? DateTime.now(),
+      status: mapImMessageState(state),
+      extraProperties: extras,
+      quotedMessageId: extras?['quotedMessageId']?.toString(),
+      quotedSenderName: extras?['quotedSenderName']?.toString(),
+      quotedContent: extras?['quotedContent']?.toString(),
+      quotedMessageType: extras?['quotedMessageType'] != null
+          ? mapImMessageType(_toIntSafe(extras!['quotedMessageType']) ?? 0)
+          : null,
+    );
+  }
+
+  static int? _toIntSafe(dynamic val) {
+    if (val == null) return null;
+    if (val is int) return val;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val);
+    return null;
+  }
+}
+
+/// Extension to convert UI [ChatRoom] to DB [ConversationsCompanion] for writing.
+extension ChatRoomToDb on ChatRoom {
+  ConversationsCompanion toDbCompanion() {
+    return ConversationsCompanion.insert(
+      id: id,
+      avatarUrl: Value(avatar ?? ''),
+      object: Value(name),
+      groupId: Value(id.startsWith('group:') ? id.substring(6) : ''),
+      messageId: Value(lastMessageId ?? ''),
+      content: Value(lastMessage ?? ''),
+      sendTime: Value(lastMessageAt?.toIso8601String() ?? ''),
+      formUserName: Value(lastSenderName ?? ''),
+      unreadCount: Value(unreadCount),
+      type: Value(type == ChatRoomType.group ? 1 : 0),
+      isPinned: Value(isPinned),
+      isMuted: Value(isMuted),
+      online: Value(isOnline),
+      localUpdatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+  }
+}
+
+/// Extension to convert DB [Conversation] row to UI [ChatRoom] for reading.
+extension DbConversationToUi on Conversation {
+  ChatRoom toUiRoom() {
+    return ChatRoom(
+      id: id,
+      name: object,
+      type: type == 1 ? ChatRoomType.group : ChatRoomType.direct,
+      avatar: avatarUrl.isNotEmpty ? avatarUrl : null,
+      memberIds: const [],
+      lastMessage: content.isNotEmpty ? content : null,
+      lastMessageId: messageId.isNotEmpty ? messageId : null,
+      lastSenderName: formUserName.isNotEmpty ? formUserName : null,
+      lastMessageAt: sendTime.isNotEmpty ? DateTime.tryParse(sendTime) : null,
+      unreadCount: unreadCount,
+      isPinned: isPinned,
+      isMuted: isMuted,
+      isOnline: online ?? false,
+      createdAt: sendTime.isNotEmpty
+          ? (DateTime.tryParse(sendTime) ?? DateTime.now())
+          : DateTime.now(),
+    );
   }
 }

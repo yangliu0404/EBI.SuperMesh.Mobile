@@ -4,12 +4,17 @@ import 'package:ebi_core/src/network/api_client.dart';
 import 'package:ebi_core/src/network/api_endpoints.dart';
 import 'package:ebi_core/src/localization/abp_localization_models.dart';
 import 'package:ebi_core/src/utils/logger.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 
 /// Service that loads and manages localization resources.
 ///
 /// Priority: ABP backend first, local JSON fallback second.
 class LocalizationService {
   final ApiClient _apiClient;
+
+  /// Optional DB cache for instant startup.
+  AppCacheDao? _cacheDao;
+  set cacheDao(AppCacheDao? dao) => _cacheDao = dao;
 
   /// Merged flat texts: { key: translatedValue }.
   /// All resources are flattened into a single map for quick lookup.
@@ -57,6 +62,39 @@ class LocalizationService {
   /// 2. If that fails, fall back to local JSON asset.
   /// 3. Also loads languages and timing from `/api/abp/application-configuration`.
   Future<void> load(String cultureName) async {
+    // 0. Try loading from DB cache for instant startup.
+    try {
+      final cachedJson = await _cacheDao?.get('l10n:$cultureName');
+      if (cachedJson != null) {
+        final cached = (json.decode(cachedJson) as Map<String, dynamic>).map(
+          (k, v) => MapEntry(
+            k,
+            (v as Map<String, dynamic>)
+                .map((ik, iv) => MapEntry(ik, iv?.toString() ?? '')),
+          ),
+        );
+        _resourceTexts = cached;
+        _texts = _flattenResources(_resourceTexts);
+        AppLogger.debug('[L10n] Loaded translations from DB cache for $cultureName');
+      }
+    } catch (e) {
+      AppLogger.debug('[L10n] DB cache miss for l10n:$cultureName: $e');
+    }
+
+    // 0b. Try loading cached languages list.
+    try {
+      final cachedLangs = await _cacheDao?.get('abp:languages');
+      if (cachedLangs != null && _languages.isEmpty) {
+        final langList = json.decode(cachedLangs) as List<dynamic>;
+        _languages = langList
+            .map((e) => AbpLanguageInfo.fromJson(e as Map<String, dynamic>))
+            .toList();
+        AppLogger.debug('[L10n] Loaded ${_languages.length} languages from DB cache');
+      }
+    } catch (e) {
+      AppLogger.debug('[L10n] DB cache miss for abp:languages: $e');
+    }
+
     Map<String, Map<String, String>> remoteTexts = {};
     bool remoteSuccess = false;
 
@@ -82,6 +120,16 @@ class LocalizationService {
     // 4. Flatten all resources into a single map.
     _texts = _flattenResources(_resourceTexts);
 
+    // 4b. Save merged resource texts to DB cache.
+    if (remoteSuccess) {
+      try {
+        await _cacheDao?.put('l10n:$cultureName', jsonEncode(_resourceTexts));
+        AppLogger.debug('[L10n] Saved translations to DB cache for $cultureName');
+      } catch (e) {
+        AppLogger.debug('[L10n] Failed to save l10n cache: $e');
+      }
+    }
+
     // 5. Always try to load application configuration for languages, timing,
     //    etc. This endpoint is typically public and provides the available
     //    language list even before authentication.
@@ -89,6 +137,17 @@ class LocalizationService {
       AppLogger.debug('[L10n] Loading app config...');
       await _loadAppConfig();
       AppLogger.debug('[L10n] App config loaded, languages: ${_languages.length}');
+
+      // 5b. Save languages to DB cache.
+      if (_languages.isNotEmpty) {
+        try {
+          await _cacheDao?.put('abp:languages',
+              jsonEncode(_languages.map((l) => l.toJson()).toList()));
+          AppLogger.debug('[L10n] Saved languages to DB cache');
+        } catch (e) {
+          AppLogger.debug('[L10n] Failed to save languages cache: $e');
+        }
+      }
     } catch (e, st) {
       AppLogger.warning('Failed to load app configuration: $e\n$st');
     }

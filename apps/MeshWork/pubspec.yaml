@@ -25,6 +25,8 @@ dependencies:
     path: ../../packages/ebi_models
   ebi_chat:
     path: ../../packages/ebi_chat
+  ebi_storage:
+    path: ../../packages/ebi_storage
 
 dev_dependencies:
   flutter_test:

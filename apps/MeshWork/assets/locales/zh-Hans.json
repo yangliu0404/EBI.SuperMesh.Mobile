@@ -262,6 +262,8 @@
     "Share": "分享",
     "OpenFile": "打开文件",
     "DownloadFile": "下载文件",
-    "OpenAgain": "再次打开"
+    "OpenAgain": "再次打开",
+    "ClearImageCache": "清除图片缓存",
+    "ClearChatHistory": "清除聊天缓存"
   }
 }

@@ -15,6 +15,7 @@ import 'package:ebi_chat/src/models/im_group_models.dart';
 import 'package:ebi_chat/src/models/upload_state.dart';
 import 'package:ebi_chat/src/providers/chat_providers.dart';
 import 'package:ebi_chat/src/repository/chat_repository.dart';
+import 'package:ebi_chat/src/repository/signalr_chat_repository.dart';
 import 'package:ebi_chat/src/services/signalr_connection_manager.dart';
 import 'package:ebi_chat/src/services/oss_url_service.dart';
 import 'package:ebi_chat/src/widgets/message_bubble.dart';
@@ -382,6 +383,28 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
   // ── Load & stream ────────────────────────────────────────────────────────
 
   Future<void> _loadMessages() async {
+    // 1. Load from local DB first for instant display.
+    if (_repo is SignalRChatRepository) {
+      try {
+        final dbMessages = await (_repo as SignalRChatRepository)
+            .getMessagesFromDb(widget.roomId);
+        if (dbMessages.isNotEmpty && mounted) {
+          setState(() {
+            _messages.clear();
+            _messageKeys.clear();
+            _messages.addAll(dbMessages);
+            _initialLoaded = true;
+          });
+        }
+      } catch (_) {}
+    }
+
+    // Pre-fetch media URLs for DB messages in the background.
+    if (_messages.isNotEmpty) {
+      _prefetchMediaUrls(_messages);
+    }
+
+    // 2. Then fetch from server (server data overwrites).
     final List<ChatMessage> messages;
     try {
       if (_groupId != null) {
@@ -397,36 +420,67 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       }
     } catch (e, st) {
       debugPrint('[ChatDetail] _loadMessages FAILED: $e\n$st');
+      if (_initialLoaded) return;
       return;
     }
     if (mounted) {
-      setState(() {
-        _messages.clear();
-        _messageKeys.clear();
-        _messages.addAll(messages);
-        _initialLoaded = true;
-        _hasMoreMessages = messages.length >= _pageSize;
+      // Check if server data actually differs from what's already showing.
+      // Skip the full rebuild if the message set is identical.
+      final existingIds = _messages.map((m) => m.id).toSet();
+      final serverIds = messages.map((m) => m.id).toSet();
+      final hasNewData = !_initialLoaded ||
+          serverIds.length != existingIds.length ||
+          !serverIds.containsAll(existingIds);
 
-        final unread = widget.initialUnreadCount;
-        if (unread > 0 && messages.isNotEmpty) {
-          final userId = _currentUserId;
-          int othersCount = 0;
-          int anchorIdx = messages.length;
-          for (int i = messages.length - 1; i >= 0; i--) {
-            if (messages[i].senderId != userId) {
-              othersCount++;
+      if (hasNewData) {
+        setState(() {
+          _messages.clear();
+          _messageKeys.clear();
+          _messages.addAll(messages);
+          _initialLoaded = true;
+          _hasMoreMessages = messages.length >= _pageSize;
+
+          final unread = widget.initialUnreadCount;
+          if (unread > 0 && messages.isNotEmpty) {
+            final userId = _currentUserId;
+            int othersCount = 0;
+            int anchorIdx = messages.length;
+            for (int i = messages.length - 1; i >= 0; i--) {
+              if (messages[i].senderId != userId) {
+                othersCount++;
+              }
+              if (othersCount >= unread) {
+                anchorIdx = i;
+                break;
+              }
             }
-            if (othersCount >= unread) {
-              anchorIdx = i;
-              break;
+            if (othersCount > 0 && anchorIdx < messages.length) {
+              _unreadDividerMessageId = messages[anchorIdx].id;
+              _unreadAboveCount = othersCount;
             }
           }
-          if (othersCount > 0 && anchorIdx < messages.length) {
-            _unreadDividerMessageId = messages[anchorIdx].id;
-            _unreadAboveCount = othersCount;
-          }
-        }
-      });
+        });
+      } else if (!_initialLoaded) {
+        setState(() {
+          _initialLoaded = true;
+          _hasMoreMessages = messages.length >= _pageSize;
+        });
+      }
+      // Pre-fetch media URLs for server messages.
+      _prefetchMediaUrls(messages);
+    }
+  }
+
+  /// Pre-fetch signed URLs for image/video messages in parallel.
+  /// This warms the OssUrlService cache so thumbnails load instantly.
+  void _prefetchMediaUrls(List<ChatMessage> msgs) {
+    final ossService = ref.read(ossUrlServiceProvider);
+    for (final msg in msgs) {
+      if ((msg.type == MessageType.image || msg.type == MessageType.video) &&
+          msg.content.isNotEmpty) {
+        // Fire-and-forget: fetch URL into cache without blocking.
+        ossService.getFileUrl(msg.content).catchError((_) => '');
+      }
     }
   }
 
@@ -1297,9 +1351,17 @@ class _ChatDetailPageState extends ConsumerState<ChatDetailPage> {
       body: Column(
         children: [
           Expanded(
-            child: _initialLoaded
-                ? _buildMessageList()
-                : const EbiLoading(message: 'Loading messages...'),
+            child: Column(
+              children: [
+                if (!_initialLoaded)
+                  const LinearProgressIndicator(minHeight: 2),
+                Expanded(
+                  child: (!_initialLoaded && _messages.isEmpty)
+                      ? const SizedBox.shrink()
+                      : _buildMessageList(),
+                ),
+              ],
+            ),
           ),
           // Typing indicator (only for 1-to-1).
           if (_isDirect && _otherUserId != null)

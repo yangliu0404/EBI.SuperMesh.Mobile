@@ -6,16 +6,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
 import 'package:ebi_core/ebi_core.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 import 'package:mesh_portal/src/routing/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Allow self-signed certificates for dev server (10.1.1.8).
   HttpOverrides.global = _DevHttpOverrides();
+
+  final db = await AppDatabase.create();
+
   runApp(
     ProviderScope(
       overrides: [
         clientIdProvider.overrideWithValue(AppConfig.meshPortalClientId),
+        databaseProvider.overrideWithValue(db),
       ],
       child: MeshPortalApp(),
     ),

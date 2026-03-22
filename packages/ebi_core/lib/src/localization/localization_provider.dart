@@ -5,6 +5,7 @@ import 'package:ebi_core/src/localization/abp_localization_models.dart';
 import 'package:ebi_core/src/providers/core_providers.dart';
 import 'package:ebi_core/src/providers/settings_providers.dart';
 import 'package:ebi_core/src/utils/logger.dart';
+import 'package:ebi_storage/ebi_storage.dart';
 
 /// Localization state holding the service instance and load status.
 class LocalizationState {
@@ -88,6 +89,13 @@ class LocalizationNotifier extends StateNotifier<LocalizationState> {
   /// Load localization for the given culture.
   /// If [cultureName] is null, uses the current settings language.
   Future<void> load([String? cultureName]) async {
+    // Inject DB cache DAO if available (optional layer).
+    AppCacheDao? cacheDao;
+    try {
+      cacheDao = _ref.read(appCacheDaoProvider);
+    } catch (_) {}
+    state.service.cacheDao = cacheDao;
+
     final culture =
         cultureName ?? _ref.read(settingsProvider).language.cultureName;
     try {

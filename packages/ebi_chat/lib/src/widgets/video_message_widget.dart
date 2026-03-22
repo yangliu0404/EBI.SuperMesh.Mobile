@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
@@ -171,12 +172,13 @@ class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
               return Stack(
                 alignment: Alignment.center,
                 children: [
-                  Image.network(
-                    snapshot.data!,
+                  CachedNetworkImage(
+                    imageUrl: snapshot.data!,
                     fit: BoxFit.cover,
                     width: 250,
                     height: 180,
-                    errorBuilder: (_, __, ___) {
+                    placeholder: (_, __) => _buildPlaceholder(loading: true),
+                    errorWidget: (_, __, ___) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         if (mounted && !_thumbnailFailed) {
                           setState(() => _thumbnailFailed = true);
@@ -184,18 +186,20 @@ class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
                       });
                       return _buildFallbackCard();
                     },
-                    loadingBuilder: (_, child, progress) {
-                      if (progress == null) {
-                        return Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            child,
-                            _buildPlayButton(),
-                            _buildDurationBadge(),
-                          ],
-                        );
-                      }
-                      return _buildPlaceholder(loading: true);
+                    imageBuilder: (_, imageProvider) {
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Image(
+                            image: imageProvider,
+                            fit: BoxFit.cover,
+                            width: 250,
+                            height: 180,
+                          ),
+                          _buildPlayButton(),
+                          _buildDurationBadge(),
+                        ],
+                      );
                     },
                   ),
                 ],

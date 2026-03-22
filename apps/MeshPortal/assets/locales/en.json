@@ -255,6 +255,8 @@
     "Share": "Share",
     "OpenFile": "Open File",
     "DownloadFile": "Download File",
-    "OpenAgain": "Open Again"
+    "OpenAgain": "Open Again",
+    "ClearImageCache": "Clear Image Cache",
+    "ClearChatHistory": "Clear Chat History"
   }
 }

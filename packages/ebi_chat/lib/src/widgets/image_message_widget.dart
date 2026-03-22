@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
@@ -180,11 +181,11 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
                   message: 'Image load failed',
                 );
               }
-              return Image.network(
-                snapshot.data!,
+              return CachedNetworkImage(
+                imageUrl: snapshot.data!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) {
-                  // Defer setState to after build.
+                placeholder: (_, __) => _loadingPlaceholder(),
+                errorWidget: (_, __, ___) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted && !_imageLoadFailed) {
                       setState(() => _imageLoadFailed = true);
@@ -193,15 +194,6 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
                   return _errorPlaceholder(
                     onRetry: _retry,
                     message: 'Image load failed',
-                  );
-                },
-                loadingBuilder: (_, child, progress) {
-                  if (progress == null) return child;
-                  final total = progress.expectedTotalBytes;
-                  return _loadingPlaceholder(
-                    progress: total != null && total > 0
-                        ? progress.cumulativeBytesLoaded / total
-                        : null,
                   );
                 },
               );
