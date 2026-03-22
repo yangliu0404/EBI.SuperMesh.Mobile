@@ -1,6 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:ebi_ui_kit/ebi_ui_kit.dart';
+
 import 'package:ebi_core/ebi_core.dart';
 
 /// Splash screen — checks token and routes to login or home.
@@ -41,60 +42,102 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              EbiColors.darkNavy,
-              Color(0xFF0D4A6B),
-              EbiColors.primaryBlue,
-            ],
+      backgroundColor: const Color(0xFFF8FAFC), // Slate 50
+      body: Stack(
+        children: [
+          // Soft colorful background blobs
+          Positioned(
+            top: MediaQuery.of(context).size.height * 0.1,
+            left: -100,
+            width: 350,
+            height: 350,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFDBEAFE), // Blue 100
+                shape: BoxShape.circle,
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Logo
-            Image.asset(
-              'assets/images/ebi_logo.png',
-              width: 200,
-              height: 90,
-              fit: BoxFit.contain,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'SuperMesh',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: EbiColors.white,
-                letterSpacing: 1.2,
+          Positioned(
+            bottom: MediaQuery.of(context).size.height * 0.2,
+            right: -150,
+            width: 400,
+            height: 400,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFE0F2FE), // Sky 100
+                shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'MeshWork',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: EbiColors.white.withValues(alpha: 0.7),
-                letterSpacing: 0.5,
-              ),
+          ),
+          // Massive blur layer
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 80.0, sigmaY: 80.0),
+              child: Container(color: Colors.transparent),
             ),
-            const SizedBox(height: 48),
-            const SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: EbiColors.white,
-              ),
+          ),
+          
+          // Main content
+          SizedBox(
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Soft floating logo card
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 32,
+                        offset: const Offset(0, 16),
+                      ),
+                    ],
+                  ),
+                  child: Image.asset(
+                    'assets/images/ebi_logo.png',
+                    width: 160,
+                    height: 72,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  'SuperMesh',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF0F172A), // Slate 900
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'MeshWork',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF64748B), // Slate 500
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                const SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFF3B82F6), // Blue 500
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

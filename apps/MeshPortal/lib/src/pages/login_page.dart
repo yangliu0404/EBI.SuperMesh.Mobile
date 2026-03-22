@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
@@ -40,29 +41,33 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return GestureDetector(
       onTap: () => _showLanguagePicker(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: EbiColors.white.withValues(alpha: 0.15),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: EbiColors.white.withValues(alpha: 0.3),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.language, size: 16, color: EbiColors.white),
+             const Icon(Icons.language, size: 16, color: Color(0xFF64748B)),
             const SizedBox(width: 6),
             Text(
               settings.language.label,
               style: const TextStyle(
                 fontSize: 13,
-                color: EbiColors.white,
+                color: Color(0xFF64748B),
                 fontWeight: FontWeight.w500,
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, size: 16, color: EbiColors.white),
+            const Icon(Icons.arrow_drop_down, size: 16, color: Color(0xFF64748B)),
           ],
         ),
       ),
@@ -121,11 +126,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       }
                       return ListTile(
                         title: Text(displayName),
-                        subtitle: Text(cultureName,
-                            style: const TextStyle(fontSize: 12)),
+                        subtitle: Text(
+                          cultureName,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                         trailing: currentCulture == cultureName
-                            ? const Icon(Icons.check,
-                                color: EbiColors.secondaryCyan)
+                            ? const Icon(
+                                Icons.check,
+                                color: EbiColors.secondaryCyan,
+                              )
                             : null,
                         onTap: () {
                           Navigator.pop(ctx);
@@ -153,8 +162,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       return;
     }
     setState(() => _tenantLoading = true);
-    final tenant =
-        await ref.read(authProvider.notifier).findTenantByName(name);
+    final tenant = await ref.read(authProvider.notifier).findTenantByName(name);
     if (mounted) {
       setState(() {
         _tenantLoading = false;
@@ -174,7 +182,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await ref.read(authProvider.notifier).login(
+    final success = await ref
+        .read(authProvider.notifier)
+        .login(
           username: _usernameController.text.trim(),
           password: _passwordController.text,
         );
@@ -189,164 +199,231 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Gradient header — lighter cyan tones for Portal
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 12,
-                bottom: 40,
-              ),
+      backgroundColor: const Color(0xFFF8FAFC), // Slate 50
+      body: Stack(
+        children: [
+          // Blurred background blob 1
+          Positioned(
+            top: -100,
+            left: -50,
+            width: 400,
+            height: 400,
+            child: Container(
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    EbiColors.primaryBlue,
-                    EbiColors.secondaryCyan,
-                    Color(0xFF4DD0E1),
-                  ],
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(32),
-                  bottomRight: Radius.circular(32),
-                ),
-              ),
-              child: Column(
-                children: [
-                  // Language switcher at top-right
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: _buildLanguageSwitcher(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Image.asset(
-                    'assets/images/ebi_logo.png',
-                    width: 160,
-                    height: 72,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'MeshPortal',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: EbiColors.white,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Your Supply Chain at a Glance',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: EbiColors.white.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
+                color: Color(0xFFCCFBF1), // Teal 100
+                shape: BoxShape.circle,
               ),
             ),
+          ),
+          // Blurred background blob 2
+          Positioned(
+            bottom: -50,
+            right: -100,
+            width: 500,
+            height: 500,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Color(0xFFCFFAFE), // Cyan 100
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Blur layer
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 100.0, sigmaY: 100.0),
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          
+          SafeArea(
+            child: Column(
+              children: [
+                // Header Content
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 16, top: 12),
+                    child: _buildLanguageSwitcher(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: Image.asset(
+                    'assets/images/ebi_logo.png',
+                    width: 140,
+                    height: 60,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+                const SizedBox(height: 32),
 
-            // Login form
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Tenant selector
-                    _buildTenantSelector(authState),
-                    const SizedBox(height: 20),
-
-                    EbiTextField(
-                      controller: _usernameController,
-                      hintText: 'Email or Username',
-                      prefixIcon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 16),
-
-                    EbiTextField(
-                      controller: _passwordController,
-                      hintText: 'Password',
-                      prefixIcon: Icons.lock_outline,
-                      obscureText: _obscurePassword,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _login(),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Required' : null,
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                          color: EbiColors.textHint,
-                          size: 20,
-                        ),
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
+                // Floating Soft Card
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Container(
+                      padding: const EdgeInsets.fromLTRB(28, 36, 28, 28),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04), // ultra soft shadow
+                            blurRadius: 40,
+                            offset: const Offset(0, -10),
+                          )
+                        ]
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      child: SingleChildScrollView(
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Center(
+                                child: Text(
+                                  'Sign in to MeshPortal',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0F172A),
+                                    letterSpacing: -0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              // Tenant selector
+                              _buildTenantSelector(authState),
+                              const SizedBox(height: 16),
 
-                    if (authState.error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          authState.error!,
-                          style: const TextStyle(
-                            color: EbiColors.error,
-                            fontSize: 13,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
+                              // Username
+                              _buildSoftTextField(
+                                controller: _usernameController,
+                                hintText: 'Email or Username',
+                                prefixIcon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                validator: (v) =>
+                                    (v == null || v.isEmpty) ? 'Required' : null,
+                              ),
+                              const SizedBox(height: 16),
 
-                    EbiButton(
-                      text: 'Sign In',
-                      width: double.infinity,
-                      isLoading: authState.isLoading,
-                      onPressed: authState.isLoading ? null : _login,
-                    ),
-                    const SizedBox(height: 28),
+                              // Password
+                              _buildSoftTextField(
+                                controller: _passwordController,
+                                hintText: 'Password',
+                                prefixIcon: Icons.lock_outline,
+                                obscureText: _obscurePassword,
+                                textInputAction: TextInputAction.done,
+                                onSubmitted: (_) => _login(),
+                                validator: (v) =>
+                                    (v == null || v.isEmpty) ? 'Required' : null,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: const Color(0xFF94A3B8),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    setState(() => _obscurePassword = !_obscurePassword);
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 24),
 
-                    // Divider
-                    Row(
-                      children: [
-                        const Expanded(child: Divider(color: EbiColors.divider)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'or continue with',
-                            style: EbiTextStyles.bodySmall
-                                .copyWith(color: EbiColors.textHint),
-                          ),
-                        ),
-                        const Expanded(child: Divider(color: EbiColors.divider)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
+                              if (authState.error != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: Text(
+                                    authState.error!,
+                                    style: const TextStyle(
+                                      color: EbiColors.error,
+                                      fontSize: 13,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+
+                              // Glowing Submit Button
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF06B6D4).withValues(alpha: 0.25), // Cyan glow
+                                      blurRadius: 20,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF06B6D4), // Cyan 500
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size(double.infinity, 56),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                  onPressed: authState.isLoading ? null : _login,
+                                  child: authState.isLoading
+                                      ? const SizedBox(
+                                          width: 24, height: 24,
+                                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                                        )
+                                      : const Text(
+                                          'Sign In',
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+
+                              // Divider
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(color: const Color(0xFFE2E8F0).withValues(alpha: 0.5)),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    child: Text(
+                                      'or continue with',
+                                      style: EbiTextStyles.bodySmall.copyWith(
+                                        color: const Color(0xFF94A3B8),
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(color: const Color(0xFFE2E8F0).withValues(alpha: 0.5)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
 
                     // Third-party login buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _socialButton('Google', Icons.g_mobiledata, const Color(0xFFDB4437)),
+                        _socialButton(
+                          'Google',
+                          Icons.g_mobiledata,
+                          const Color(0xFFDB4437),
+                        ),
                         const SizedBox(width: 16),
-                        _socialButton('Apple', Icons.apple, const Color(0xFF000000)),
+                        _socialButton(
+                          'Apple',
+                          Icons.apple,
+                          const Color(0xFF000000),
+                        ),
                         const SizedBox(width: 16),
-                        _socialButton('Microsoft', Icons.window, const Color(0xFF00A4EF)),
+                        _socialButton(
+                          'Microsoft',
+                          Icons.window,
+                          const Color(0xFF00A4EF),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -372,12 +449,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ),
                     ),
-                  ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -386,7 +468,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Row(
       children: [
         Expanded(
-          child: EbiTextField(
+          child: _buildSoftTextField(
             controller: _tenantController,
             hintText: 'Tenant Name (empty = Host)',
             prefixIcon: Icons.business,
@@ -400,14 +482,69 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         ),
         const SizedBox(width: 8),
         SizedBox(
-          height: 48,
-          child: EbiButton(
-            text: _tenantLoading ? '...' : 'Verify',
+          height: 52, // Match soft input height
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _tenantVerified ? const Color(0xFFF1F5F9) : const Color(0xFF06B6D4), // Cyan 500
+              foregroundColor: _tenantVerified ? const Color(0xFF0F172A) : Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+            ),
             onPressed: _tenantLoading ? null : _lookupTenant,
-            isOutlined: _tenantVerified,
+            child: Text(_tenantLoading ? '...' : 'Verify'),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSoftTextField({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData prefixIcon,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    void Function(String)? onSubmitted,
+    TextInputType? keyboardType,
+    TextInputAction? textInputAction,
+    void Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      validator: validator,
+      onFieldSubmitted: onSubmitted,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      style: const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        prefixIcon: Icon(prefixIcon, color: const Color(0xFF94A3B8), size: 20),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: const Color(0xFFF1F5F9), // Slate 100
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF06B6D4), width: 1.5), // Cyan 500 focus
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: EbiColors.error, width: 1),
+        ),
+      ),
     );
   }
 
@@ -421,23 +558,26 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         );
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         width: 72,
-        height: 52,
+        height: 56,
         decoration: BoxDecoration(
-          color: EbiColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: EbiColors.border),
+          color: const Color(0xFFF1F5F9), // Slate 100 
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 2),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 9, color: EbiColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 10,
+                color: Color(0xFF64748B), // Slate 500
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -455,22 +595,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         );
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        height: 48,
+        height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFF07C160),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFF07C160).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.chat_rounded, color: EbiColors.white, size: 20),
+            Icon(Icons.chat_rounded, color: Color(0xFF07C160), size: 20),
             SizedBox(width: 8),
             Text(
               'Continue with WeChat',
               style: TextStyle(
-                color: EbiColors.white,
+                color: Color(0xFF07C160),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

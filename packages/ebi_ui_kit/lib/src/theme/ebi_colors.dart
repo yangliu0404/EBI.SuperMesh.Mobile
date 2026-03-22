@@ -30,19 +30,17 @@ class EbiColors {
   static const Color border = Color(0xFFD1D5DB);
 
   // ── Primary Swatch ──
-  static const MaterialColor primarySwatch = MaterialColor(
-    0xFF009FE3,
-    <int, Color>{
-      50: Color(0xFFE6F5FC),
-      100: Color(0xFFB3E2F7),
-      200: Color(0xFF80CFF2),
-      300: Color(0xFF4DBCED),
-      400: Color(0xFF26ADE8),
-      500: Color(0xFF009FE3),
-      600: Color(0xFF008FCC),
-      700: Color(0xFF007DB3),
-      800: Color(0xFF006B99),
-      900: Color(0xFF004D6D),
-    },
-  );
+  static const MaterialColor primarySwatch =
+      MaterialColor(0xFF009FE3, <int, Color>{
+        50: Color(0xFFE6F5FC),
+        100: Color(0xFFB3E2F7),
+        200: Color(0xFF80CFF2),
+        300: Color(0xFF4DBCED),
+        400: Color(0xFF26ADE8),
+        500: Color(0xFF009FE3),
+        600: Color(0xFF008FCC),
+        700: Color(0xFF007DB3),
+        800: Color(0xFF006B99),
+        900: Color(0xFF004D6D),
+      });
 }
