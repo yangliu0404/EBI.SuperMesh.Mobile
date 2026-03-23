@@ -53,6 +53,7 @@ class _AppShellState extends ConsumerState<AppShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: _currentIndex == 1 ? const ProjectDrawer() : null,
       body: IndexedStack(
         index: _currentIndex,
         children: [
