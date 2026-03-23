@@ -9,17 +9,35 @@ import 'package:ebi_chat/src/providers/call_providers.dart';
 import 'package:ebi_chat/src/pages/incoming_call_page.dart';
 
 /// Message center page — notification aggregation + conversation list.
-class ChatRoomListPage extends ConsumerWidget {
-  /// Callback with (roomId, roomName, unreadCount) when a conversation is tapped.
+class ChatRoomListPage extends ConsumerStatefulWidget {
   final void Function(String roomId, String roomName, int unreadCount)? onRoomTap;
 
   const ChatRoomListPage({super.key, this.onRoomTap});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatRoomListPage> createState() => _ChatRoomListPageState();
+}
+
+class _ChatRoomListPageState extends ConsumerState<ChatRoomListPage> {
+  final _swipeController = SwipeActionController();
+
+  @override
+  void dispose() {
+    _swipeController.dispose();
+    super.dispose();
+  }
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification) {
+      _swipeController.closeAll();
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final roomsAsync = ref.watch(chatRoomsProvider);
 
-    // Global listener for incoming calls
     ref.listen<CallState>(callStateProvider, (prev, next) {
       if (next.hasIncomingCall && (prev == null || !prev.hasIncomingCall)) {
         Navigator.of(context).push(
@@ -46,11 +64,9 @@ class ChatRoomListPage extends ConsumerWidget {
               child: TextField(
                 decoration: InputDecoration(
                   hintText: ref.L('SearchConversations'),
-                  prefixIcon:
-                      const Icon(Icons.search, color: EbiColors.textHint, size: 20),
+                  prefixIcon: const Icon(Icons.search, color: EbiColors.textHint, size: 20),
                   border: InputBorder.none,
-                  contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   hintStyle: const TextStyle(color: EbiColors.textHint, fontSize: 14),
                 ),
               ),
@@ -78,48 +94,78 @@ class ChatRoomListPage extends ConsumerWidget {
                   ],
                 ),
               ),
-              data: (rooms) => RefreshIndicator(
-                onRefresh: () async {
-                  await ref.read(chatRoomsProvider.notifier).refresh();
-                },
-                child: rooms.isEmpty
-                    ? ListView(
-                        children: [
+              data: (rooms) => NotificationListener<ScrollNotification>(
+                onNotification: _onScrollNotification,
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    _swipeController.closeAll();
+                    await ref.read(chatRoomsProvider.notifier).refresh();
+                  },
+                  child: rooms.isEmpty
+                      ? ListView(children: [
                           const SizedBox(height: 120),
                           EbiEmptyState(
                             icon: Icons.chat_bubble_outline,
                             title: ref.L('NoConversations'),
                             subtitle: ref.L('PullDownToRefresh'),
                           ),
-                        ],
-                      )
-                    : ListView(
-                        children: [
-                          // Notification section
-                          const NotificationSection(),
-
-                          // Conversations header
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                            child: Text(
-                              ref.L('Conversations'),
-                              style: EbiTextStyles.labelSmall.copyWith(
-                                color: EbiColors.textHint,
-                                letterSpacing: 1.0,
+                        ])
+                      : ListView(
+                          children: [
+                            const NotificationSection(),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                              child: Text(
+                                ref.L('Conversations'),
+                                style: EbiTextStyles.labelSmall.copyWith(
+                                  color: EbiColors.textHint, letterSpacing: 1.0),
                               ),
                             ),
-                          ),
-
-                          // Room list
-                          ...rooms.map(
-                            (room) => ChatRoomTile(
+                            ...rooms.map((room) => ChatRoomTile(
+                              key: ValueKey(room.id),
                               room: room,
-                              onTap: () => onRoomTap?.call(
-                                  room.id, room.name, room.unreadCount),
-                            ),
-                          ),
-                        ],
-                      ),
+                              swipeController: _swipeController,
+                              onTap: () {
+                                _swipeController.closeAll();
+                                widget.onRoomTap?.call(room.id, room.name, room.unreadCount);
+                              },
+                              onMarkUnread: () {
+                                final notifier = ref.read(chatRoomsProvider.notifier);
+                                if (room.unreadCount > 0) {
+                                  // Mark as read: clear force-unread + notify server.
+                                  notifier.clearUnreadCount(room.id);
+                                  final repo = ref.read(chatRepositoryProvider);
+                                  if (room.id.startsWith('group:')) {
+                                    repo.readGroupConversation(
+                                        room.id.substring(6), room.lastMessageId ?? '');
+                                  } else {
+                                    repo.markConversationAsRead(room.id);
+                                  }
+                                } else {
+                                  // Mark as unread: persisted locally.
+                                  notifier.markAsUnread(room.id);
+                                }
+                              },
+                              onPin: () async {
+                                final repo = ref.read(chatRepositoryProvider);
+                                final newPinned = !room.isPinned;
+                                try {
+                                  final convId = room.id.startsWith('group:')
+                                      ? room.id.substring(6)
+                                      : room.id;
+                                  await repo.pinConversation(convId, newPinned);
+                                  ref.read(chatRoomsProvider.notifier).refresh();
+                                } catch (_) {}
+                              },
+                              onDelete: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('删除功能开发中')),
+                                );
+                              },
+                            )),
+                          ],
+                        ),
+                ),
               ),
             ),
           ),

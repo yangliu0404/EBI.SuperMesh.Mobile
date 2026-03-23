@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_core/ebi_core.dart';
+import 'dart:convert';
 import 'package:ebi_chat/src/chat_message.dart';
 import 'package:ebi_chat/src/chat_room.dart';
 import 'package:ebi_chat/src/models/im_models.dart';
@@ -93,10 +94,15 @@ final chatRoomsProvider =
   final repo = ref.watch(chatRepositoryProvider);
   final manager = ref.read(signalRConnectionProvider);
   final currentUserId = ref.watch(currentUserIdProvider);
+  AppCacheDao? cacheDao;
+  try {
+    cacheDao = ref.read(appCacheDaoProvider);
+  } catch (_) {}
   return ChatRoomsNotifier(
     repo: repo,
     manager: manager,
     currentUserId: currentUserId,
+    cacheDao: cacheDao,
   );
 });
 
@@ -104,16 +110,25 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
   final ChatRepository repo;
   final SignalRConnectionManager manager;
   final String currentUserId;
+  final AppCacheDao? _cacheDao;
   StreamSubscription<ImChatMessage>? _messageSub;
   StreamSubscription<ImChatMessage>? _recallSub;
   StreamSubscription<ImGroupInfoUpdatedEvent>? _groupUpdateSub;
   StreamSubscription? _connectivitySub;
 
+  /// Room IDs the user has force-marked as unread (client-side only).
+  final Set<String> _forceUnreadRooms = {};
+
+  static const _forceUnreadKey = 'force_unread_rooms';
+
   ChatRoomsNotifier({
     required this.repo,
     required this.manager,
     required this.currentUserId,
-  }) : super(const AsyncValue.loading()) {
+    AppCacheDao? cacheDao,
+  })  : _cacheDao = cacheDao,
+        super(const AsyncValue.loading()) {
+    _loadForceUnread();
     _load();
     _listenToMessages();
     _listenToRecalls();
@@ -121,13 +136,65 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     _listenToConnectivity();
   }
 
+  // ── Force-unread persistence ──
+
+  Future<void> _loadForceUnread() async {
+    try {
+      final json = await _cacheDao?.get(_forceUnreadKey);
+      if (json != null) {
+        final list = jsonDecode(json) as List<dynamic>;
+        _forceUnreadRooms.addAll(list.cast<String>());
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _saveForceUnread() async {
+    try {
+      await _cacheDao?.put(
+          _forceUnreadKey, jsonEncode(_forceUnreadRooms.toList()));
+    } catch (_) {}
+  }
+
+  /// Mark a conversation as force-unread (client-side only, persisted).
+  void markAsUnread(String roomId) {
+    _forceUnreadRooms.add(roomId);
+    _saveForceUnread();
+    _applyForceUnread();
+  }
+
+  /// Remove force-unread mark (called when user opens the conversation
+  /// or explicitly marks as read).
+  void markAsRead(String roomId) {
+    _forceUnreadRooms.remove(roomId);
+    _saveForceUnread();
+  }
+
+  /// Apply force-unread flags to the current room list.
+  List<ChatRoom> _withForceUnread(List<ChatRoom> rooms) {
+    if (_forceUnreadRooms.isEmpty) return rooms;
+    return rooms.map((r) {
+      if (_forceUnreadRooms.contains(r.id) && r.unreadCount == 0) {
+        return r.copyWith(unreadCount: 1);
+      }
+      return r;
+    }).toList();
+  }
+
+  void _applyForceUnread() {
+    final rooms = state.valueOrNull;
+    if (rooms == null || !mounted) return;
+    state = AsyncValue.data(_withForceUnread(rooms));
+  }
+
+  // ── Loading ──
+
   Future<void> _load() async {
     // 1. Load from local DB first (instant display).
     try {
       if (repo is SignalRChatRepository) {
         final dbRooms = await (repo as SignalRChatRepository).getConversationsFromDb();
         if (dbRooms.isNotEmpty && mounted) {
-          state = AsyncValue.data(dbRooms);
+          state = AsyncValue.data(_withForceUnread(dbRooms));
         }
       }
     } catch (_) {}
@@ -135,20 +202,19 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
     // 2. Then fetch from server (server data overwrites).
     try {
       final rooms = await repo.getConversations();
-      if (mounted) state = AsyncValue.data(rooms);
+      if (mounted) state = AsyncValue.data(_withForceUnread(rooms));
     } catch (e, st) {
-      // Only show error if we don't have local data.
       if (mounted && !state.hasValue) {
         state = AsyncValue.error(e, st);
       }
     }
   }
 
-  /// Reload from API (e.g. after marking as read).
+  /// Reload from API (e.g. after pinning).
   Future<void> refresh() async {
     try {
       final rooms = await repo.getConversations();
-      if (mounted) state = AsyncValue.data(rooms);
+      if (mounted) state = AsyncValue.data(_withForceUnread(rooms));
     } catch (_) {}
   }
 
@@ -349,6 +415,9 @@ class ChatRoomsNotifier extends StateNotifier<AsyncValue<List<ChatRoom>>> {
 
   /// Clear unread count for a conversation (called when user enters chat).
   void clearUnreadCount(String conversationKey) {
+    // Also clear force-unread flag.
+    markAsRead(conversationKey);
+
     final rooms = state.valueOrNull;
     if (rooms == null) return;
     final idx = rooms.indexWhere((r) => r.id == conversationKey);
