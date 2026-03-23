@@ -8,6 +8,7 @@ class EbiAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showBack;
   final VoidCallback? onBack;
   final Color? backgroundColor;
+  final PreferredSizeWidget? bottom;
 
   const EbiAppBar({
     super.key,
@@ -16,10 +17,11 @@ class EbiAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.showBack = true,
     this.onBack,
     this.backgroundColor,
+    this.bottom,
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +45,7 @@ class EbiAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: actions,
+      bottom: bottom,
     );
   }
 }
