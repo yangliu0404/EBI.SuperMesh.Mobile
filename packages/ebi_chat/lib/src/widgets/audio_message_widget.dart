@@ -30,6 +30,7 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
 
   late AudioPlayer _player;
   bool _isPlaying = false;
+  bool _isLoading = false;
   int _animIndex = 3;
   Timer? _animTimer;
 
@@ -53,6 +54,7 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
   }
 
   Future<void> _togglePlay() async {
+    if (_isLoading) return; // Prevent double-tap while downloading.
     if (_isPlaying) {
       await _stopPlaying();
     } else {
@@ -67,25 +69,30 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
     }
     _activeInstance = this;
 
+    // Show loading state while downloading.
+    if (mounted) setState(() => _isLoading = true);
+
     try {
       final rawPath = widget.message.fileUrl ?? widget.message.content;
-      
+
       if (rawPath.startsWith('/') || rawPath.startsWith('file://')) {
         await _player.setFilePath(rawPath.replaceFirst('file://', ''));
       } else {
-        // Download to temp file via Dio first. 
-        // This gracefully bypasses AVPlayer's strict SSL checks on self-signed certs!
         final localPath = await ref.read(ossUrlServiceProvider).downloadToTemp(rawPath);
         await _player.setFilePath(localPath);
       }
-      
+
       if (!mounted) return;
-      setState(() => _isPlaying = true);
+      setState(() {
+        _isLoading = false;
+        _isPlaying = true;
+      });
       _startAnimation();
       await _player.play();
     } catch (e) {
       debugPrint('Error playing audio: $e');
-      _stopPlaying(); // Cleanup on error
+      if (mounted) setState(() => _isLoading = false);
+      _stopPlaying();
     }
   }
 
@@ -116,12 +123,35 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
     final iconColor = widget.isMe ? EbiColors.white : const Color(0xFF333333);
     final textColor = widget.isMe ? EbiColors.white : const Color(0xFF999999);
     final duration = widget.message.mediaDuration ?? 0;
-    
+
     // Calculate width based on duration: WeChat style (min 60, max 220)
     final double calculatedWidth = 60.0 + (duration * 3.0);
     final double bubbleWidth = calculatedWidth.clamp(60.0, 220.0);
 
     final durationText = duration > 0 ? '$duration"' : '';
+
+    // Icon: loading spinner / wave animation (playing) / static wave (idle)
+    Widget iconWidget;
+    if (_isLoading) {
+      iconWidget = SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 1.5, color: iconColor),
+      );
+    } else if (_isPlaying) {
+      iconWidget = VoiceWaveIcon(
+        step: _animIndex,
+        color: iconColor,
+        isMe: widget.isMe,
+      );
+    } else {
+      // Idle: static full wave (step 3)
+      iconWidget = VoiceWaveIcon(
+        step: 3,
+        color: iconColor.withValues(alpha: 0.6),
+        isMe: widget.isMe,
+      );
+    }
 
     final content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -131,11 +161,7 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
           Text(durationText, style: TextStyle(color: textColor, fontSize: 13)),
           const SizedBox(width: 8),
         ],
-          VoiceWaveIcon(
-            step: !_isPlaying ? 3 : _animIndex,
-            color: iconColor,
-            isMe: widget.isMe,
-          ),
+        iconWidget,
         if (!widget.isMe && durationText.isNotEmpty) ...[
           const SizedBox(width: 8),
           Text(durationText, style: TextStyle(color: textColor, fontSize: 13)),
@@ -143,13 +169,21 @@ class _AudioMessageWidgetState extends ConsumerState<AudioMessageWidget> {
       ],
     );
 
-    return GestureDetector(
-      onTap: _togglePlay,
-      child: Container(
-        width: bubbleWidth,
-        margin: const EdgeInsets.symmetric(vertical: 2),
-        color: Colors.transparent,
-        child: content,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _togglePlay,
+        borderRadius: BorderRadius.circular(8),
+        splashColor: (widget.isMe ? EbiColors.white : EbiColors.primaryBlue)
+            .withValues(alpha: 0.15),
+        highlightColor: (widget.isMe ? EbiColors.white : EbiColors.primaryBlue)
+            .withValues(alpha: 0.08),
+        child: Container(
+          width: bubbleWidth,
+          margin: const EdgeInsets.symmetric(vertical: 2),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: content,
+        ),
       ),
     );
   }

@@ -101,6 +101,63 @@ class SignalRChatRepository implements ChatRepository {
         }
       }
 
+      // Fetch conversation settings (pin/mute) from dedicated API,
+      // same as Web's getMySettingsApi().
+      try {
+        final settingsResponse = await _apiClient.get(
+          ApiEndpoints.imConversationSettings,
+        );
+        final settingsItems = _extractItems(settingsResponse.data);
+        AppLogger.info('[SignalRChatRepo] Settings API returned ${settingsItems.length} items');
+        final settingsMap = <String, Map<String, dynamic>>{};
+        for (final s in settingsItems) {
+          final map = s as Map<String, dynamic>;
+          final convId = (map['conversationId'] as String?)?.toLowerCase();
+          if (convId != null) {
+            settingsMap[convId] = map;
+            final isPinned = map['isPinned'];
+            final isMuted = map['isMuted'];
+            if (isPinned == true || isMuted == true) {
+              AppLogger.info('[SignalRChatRepo] Setting: convId=$convId, isPinned=$isPinned, isMuted=$isMuted');
+            }
+          }
+        }
+
+        // Merge settings into rooms.
+        // Backend may return conversationId with or without 'group:' prefix.
+        // For groups, prefer the raw groupId key (without prefix) since that's
+        // the authoritative setting record.
+        for (int i = 0; i < rooms.length; i++) {
+          final roomId = rooms[i].id.toLowerCase();
+          Map<String, dynamic>? setting;
+
+          if (roomId.startsWith('group:')) {
+            final rawId = roomId.substring(6);
+            // Prefer raw groupId (authoritative), fallback to prefixed.
+            setting = settingsMap[rawId] ?? settingsMap[roomId];
+          } else {
+            setting = settingsMap[roomId];
+          }
+
+          if (setting != null) {
+            rooms[i] = rooms[i].copyWith(
+              isPinned: setting['isPinned'] as bool? ?? false,
+              isMuted: setting['isMuted'] as bool? ?? false,
+            );
+          }
+        }
+      } catch (e) {
+        AppLogger.debug('[SignalRChatRepo] getConversationSettings failed: $e');
+      }
+
+      // Sort: pinned first, then by lastMessageAt descending.
+      rooms.sort((a, b) {
+        if (a.isPinned != b.isPinned) return a.isPinned ? -1 : 1;
+        final aTime = a.lastMessageAt ?? DateTime(2000);
+        final bTime = b.lastMessageAt ?? DateTime(2000);
+        return bTime.compareTo(aTime);
+      });
+
       // Save to local DB (server data overwrites local).
       _saveConversationsToDb(rooms);
 
@@ -424,14 +481,16 @@ class SignalRChatRepository implements ChatRepository {
 
   @override
   Future<void> pinConversation(String conversationId, bool isPinned) async {
+    AppLogger.info('[SignalRChatRepo] pinConversation: convId=$conversationId, isPinned=$isPinned');
     try {
-      await _apiClient.put(
+      final response = await _apiClient.put(
         '/api/im/conversation-settings/pin',
         data: {
           'conversationId': conversationId,
           'value': isPinned,
         },
       );
+      AppLogger.info('[SignalRChatRepo] pinConversation response: ${response.statusCode} ${response.data}');
     } catch (e, st) {
       AppLogger.error('[SignalRChatRepo] pinConversation failed', e, st);
       rethrow;

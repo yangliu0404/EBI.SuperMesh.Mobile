@@ -37,7 +37,9 @@ class OssUrlService {
   final Map<String, _CacheEntry> _cache = {};
 
   /// Cache entries older than this are considered stale.
-  static const _cacheTtl = Duration(minutes: 10);
+  /// Images are also cached on disk by CachedNetworkImage (using stable
+  /// cacheKey), so even after URL expiry the image pixels remain available.
+  static const _cacheTtl = Duration(minutes: 30);
 
   /// Maximum number of entries kept in the in-memory L1 cache.
   static const _maxCacheSize = 200;

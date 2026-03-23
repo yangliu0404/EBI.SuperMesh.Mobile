@@ -13,7 +13,10 @@ class ChatRoomTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
+      child: Container(
+        color: room.isPinned
+            ? EbiColors.primaryBlue.withValues(alpha: 0.04)
+            : null,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
@@ -77,15 +80,32 @@ class ChatRoomTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (room.lastMessageAt != null)
-                        Text(
-                          _formatTime(room.lastMessageAt!),
-                          style: EbiTextStyles.labelSmall.copyWith(
-                            color: room.unreadCount > 0
-                                ? EbiColors.primaryBlue
-                                : EbiColors.textHint,
-                          ),
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (room.isMuted)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(Icons.notifications_off_outlined,
+                                  size: 14, color: EbiColors.textHint),
+                            ),
+                          if (room.isPinned)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(Icons.push_pin,
+                                  size: 14, color: EbiColors.textHint),
+                            ),
+                          if (room.lastMessageAt != null)
+                            Text(
+                              _formatTime(room.lastMessageAt!),
+                              style: EbiTextStyles.labelSmall.copyWith(
+                                color: room.unreadCount > 0
+                                    ? EbiColors.primaryBlue
+                                    : EbiColors.textHint,
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
@@ -27,34 +28,63 @@ class ImageMessageWidget extends ConsumerStatefulWidget {
 }
 
 class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
-  late Future<String> _thumbnailFuture;
+  String? _resolvedUrl;
+  FileInfo? _cachedFile;
   bool _imageLoadFailed = false;
+  bool _resolved = false;
 
   @override
   void initState() {
     super.initState();
-    _thumbnailFuture = _resolveThumbnail();
+    _resolve();
   }
 
-  Future<String> _resolveThumbnail() {
+  Future<void> _resolve() async {
     final ossPath = widget.message.content;
     if (ossPath.isEmpty) {
-      return Future.error(const OssUrlException('No image path'));
+      if (mounted) setState(() => _resolved = true);
+      return;
     }
-    final ossService = ref.read(ossUrlServiceProvider);
-    return ossService.getImageThumbnailUrl(ossPath);
+
+    // 1. Check disk cache first — instant, no network.
+    try {
+      final cached = await DefaultCacheManager().getFileFromCache(ossPath);
+      if (cached != null && mounted) {
+        setState(() {
+          _cachedFile = cached;
+          _resolved = true;
+        });
+        return;
+      }
+    } catch (_) {}
+
+    // 2. Disk cache miss — resolve signed URL from network.
+    try {
+      final ossService = ref.read(ossUrlServiceProvider);
+      final url = await ossService.getImageThumbnailUrl(ossPath);
+      if (mounted) {
+        setState(() {
+          _resolvedUrl = url;
+          _resolved = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _resolved = true);
+    }
   }
 
   void _retry() {
-    // Evict stale cache entry so we hit the API again.
     final ossPath = widget.message.content;
     if (ossPath.isNotEmpty) {
       ref.read(ossUrlServiceProvider).evict(ossPath);
     }
     setState(() {
       _imageLoadFailed = false;
-      _thumbnailFuture = _resolveThumbnail();
+      _resolvedUrl = null;
+      _cachedFile = null;
+      _resolved = false;
     });
+    _resolve();
   }
 
   Future<void> _openFullScreen() async {
@@ -163,45 +193,56 @@ class _ImageMessageWidgetState extends ConsumerState<ImageMessageWidget> {
         child: Container(
           constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
           color: EbiColors.divider,
-          child: FutureBuilder<String>(
-            future: _thumbnailFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _loadingPlaceholder();
-              }
-              if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-                return _errorPlaceholder(
-                  onRetry: _retry,
-                  message: _errorMessage(snapshot.error),
-                );
-              }
-              if (_imageLoadFailed) {
-                return _errorPlaceholder(
-                  onRetry: _retry,
-                  message: 'Image load failed',
-                );
-              }
-              return CachedNetworkImage(
-                imageUrl: snapshot.data!,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => _loadingPlaceholder(),
-                errorWidget: (_, __, ___) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && !_imageLoadFailed) {
-                      setState(() => _imageLoadFailed = true);
-                    }
-                  });
-                  return _errorPlaceholder(
-                    onRetry: _retry,
-                    message: 'Image load failed',
-                  );
-                },
-              );
-            },
-          ),
+          child: _buildImage(),
         ),
       ),
     );
+  }
+
+  Widget _buildImage() {
+    // Still resolving URL or checking cache.
+    if (!_resolved) return _loadingPlaceholder();
+
+    if (_imageLoadFailed) {
+      return _errorPlaceholder(onRetry: _retry, message: 'Image load failed');
+    }
+
+    // Disk cache hit — show directly from file, zero network.
+    if (_cachedFile != null) {
+      return Image.file(
+        _cachedFile!.file,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_imageLoadFailed) {
+              setState(() => _imageLoadFailed = true);
+            }
+          });
+          return _errorPlaceholder(onRetry: _retry, message: 'Image load failed');
+        },
+      );
+    }
+
+    // Have a signed URL — download via CachedNetworkImage (caches for next time).
+    if (_resolvedUrl != null && _resolvedUrl!.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: _resolvedUrl!,
+        cacheKey: widget.message.content, // Stable OSS path
+        fit: BoxFit.cover,
+        placeholder: (_, __) => _loadingPlaceholder(),
+        errorWidget: (_, __, ___) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_imageLoadFailed) {
+              setState(() => _imageLoadFailed = true);
+            }
+          });
+          return _errorPlaceholder(onRetry: _retry, message: 'Image load failed');
+        },
+      );
+    }
+
+    // No URL resolved — error.
+    return _errorPlaceholder(onRetry: _retry, message: 'No image path');
   }
 
   static String _errorMessage(Object? error) {

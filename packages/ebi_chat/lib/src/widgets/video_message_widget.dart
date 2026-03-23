@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ebi_ui_kit/ebi_ui_kit.dart';
@@ -30,23 +31,42 @@ class VideoMessageWidget extends ConsumerStatefulWidget {
 }
 
 class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
-  late Future<String> _thumbnailFuture;
+  String? _resolvedUrl;
+  FileInfo? _cachedFile;
   bool _thumbnailFailed = false;
+  bool _resolved = false;
 
   @override
   void initState() {
     super.initState();
-    _thumbnailFuture = _resolveThumbnail();
+    _resolve();
   }
 
-  Future<String> _resolveThumbnail() {
+  Future<void> _resolve() async {
     final ossPath = widget.message.content;
     if (ossPath.isEmpty) {
-      return Future.error(const OssUrlException('No video path'));
+      if (mounted) setState(() => _resolved = true);
+      return;
     }
-    // Use the same thumbnail URL pattern (server-side generates video thumbnail).
-    final ossService = ref.read(ossUrlServiceProvider);
-    return ossService.getImageThumbnailUrl(ossPath, maxWidth: 320, maxHeight: 240);
+    final cacheKey = 'thumb_$ossPath';
+
+    // 1. Disk cache first.
+    try {
+      final cached = await DefaultCacheManager().getFileFromCache(cacheKey);
+      if (cached != null && mounted) {
+        setState(() { _cachedFile = cached; _resolved = true; });
+        return;
+      }
+    } catch (_) {}
+
+    // 2. Network fallback.
+    try {
+      final ossService = ref.read(ossUrlServiceProvider);
+      final url = await ossService.getImageThumbnailUrl(ossPath, maxWidth: 320, maxHeight: 240);
+      if (mounted) setState(() { _resolvedUrl = url; _resolved = true; });
+    } catch (_) {
+      if (mounted) setState(() => _resolved = true);
+    }
   }
 
   Future<void> _openPreview() async {
@@ -155,60 +175,64 @@ class _VideoMessageWidgetState extends ConsumerState<VideoMessageWidget> {
         child: Container(
           constraints: const BoxConstraints(maxHeight: 200, maxWidth: 250),
           color: EbiColors.divider,
-          child: FutureBuilder<String>(
-            future: _thumbnailFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _buildPlaceholder(loading: true);
-              }
-              if (snapshot.hasError ||
-                  !snapshot.hasData ||
-                  snapshot.data!.isEmpty) {
-                return _buildFallbackCard();
-              }
-              if (_thumbnailFailed) {
-                return _buildFallbackCard();
-              }
+          child: _buildThumbnail(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail() {
+    if (!_resolved) return _buildPlaceholder(loading: true);
+    if (_thumbnailFailed) return _buildFallbackCard();
+
+    // Disk cache hit — show from file.
+    if (_cachedFile != null) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          Image.file(_cachedFile!.file, fit: BoxFit.cover, width: 250, height: 180),
+          _buildPlayButton(),
+          _buildDurationBadge(),
+        ],
+      );
+    }
+
+    // Network — download and cache.
+    if (_resolvedUrl != null && _resolvedUrl!.isNotEmpty) {
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          CachedNetworkImage(
+            imageUrl: _resolvedUrl!,
+            cacheKey: 'thumb_${widget.message.content}',
+            fit: BoxFit.cover,
+            width: 250,
+            height: 180,
+            placeholder: (_, __) => _buildPlaceholder(loading: true),
+            errorWidget: (_, __, ___) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted && !_thumbnailFailed) {
+                  setState(() => _thumbnailFailed = true);
+                }
+              });
+              return _buildFallbackCard();
+            },
+            imageBuilder: (_, imageProvider) {
               return Stack(
                 alignment: Alignment.center,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl: snapshot.data!,
-                    fit: BoxFit.cover,
-                    width: 250,
-                    height: 180,
-                    placeholder: (_, __) => _buildPlaceholder(loading: true),
-                    errorWidget: (_, __, ___) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted && !_thumbnailFailed) {
-                          setState(() => _thumbnailFailed = true);
-                        }
-                      });
-                      return _buildFallbackCard();
-                    },
-                    imageBuilder: (_, imageProvider) {
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Image(
-                            image: imageProvider,
-                            fit: BoxFit.cover,
-                            width: 250,
-                            height: 180,
-                          ),
-                          _buildPlayButton(),
-                          _buildDurationBadge(),
-                        ],
-                      );
-                    },
-                  ),
+                  Image(image: imageProvider, fit: BoxFit.cover, width: 250, height: 180),
+                  _buildPlayButton(),
+                  _buildDurationBadge(),
                 ],
               );
             },
           ),
-        ),
-      ),
-    );
+        ],
+      );
+    }
+
+    return _buildFallbackCard();
   }
 
   /// Fallback when thumbnail unavailable: dark card with play icon + file name.

@@ -56,6 +56,10 @@ class ApiEndpoints {
   static const String signalRMessages = '/signalr-hubs/messages';
   static const String signalRCall = '/signalr-hubs/call';
 
+  // ── IM Conversation Settings ──
+  static const String imConversationSettings =
+      '/api/im/conversation-settings';
+
   // ── OSS Management ──
   static const String ossGenerateUrl =
       '/api/oss-management/objects/generate-url';
